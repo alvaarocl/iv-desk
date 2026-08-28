@@ -81,8 +81,8 @@ Per the hackathon rules, work done before the official P&L window (Mon 31 Aug 09
   scaffold, documentation, Day-0 API de-risking probes, and the deterministic trading engine
   (`agent/`), all developed 28–30 Aug.
 - All prototyping and testing before the P&L window ran on a **separate testing paper account**
-  (`PA3TQHQKM5AD`). The official competition account is a fresh $100,000 paper account that places
-  its first order on **Mon 31 Aug 09:30 ET** and is used for nothing before then.
+  (`PA3TQHQKM5AD`). The official competition account (`PA39HSCQE8S3`) is a fresh $100,000 paper
+  account that places its first order on **Mon 31 Aug 09:30 ET** and is used for nothing before then.
 - No pre-existing private libraries are depended on. Third-party dependencies are listed in
   `pyproject.toml`.
 - The agent, its options workflow (Alpaca Trading API via the CLI), and the LLM desk layer were all

@@ -21,7 +21,7 @@ Per-trade max loss ≤ [X]% NAV · portfolio max loss ≤ 10% NAV · ≤ 6 concu
 - **CLI** (`alpacahq/cli`) — production trading loop on a 15-minute cron during market hours: order placement (`order_class: mleg`), positions, account, market clock.
 - **MCP server** — an "ask the desk" interface for live exploration of the desk's current state and reasoning.
 - **Options market data** — snapshot endpoint (greeks, IV) and per-contract open interest (cached) build the vol surface and GEX.
-- Fresh dedicated paper account, $100,000 starting balance. Account ID: **PA3TQHQKM5AD**.
+- Fresh dedicated paper account, $100,000 starting balance. Account ID: **PA39HSCQE8S3**.
 
 ## Results (fill Day 7)
 

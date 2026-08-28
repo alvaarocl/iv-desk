@@ -104,8 +104,8 @@ Fijadas por los probes de Día 0 (`../probes/RESULTS.md`). No revisar sin motivo
 
 | | |
 |---|---|
-| Cuenta de **testing** | `PA3TQHQKM5AD` — $100.000, opciones nivel 3, creada 28 ago 2026. Ya tiene órdenes de prueba (canceladas). |
-| Cuenta de **competición** | **por crear este finde** — nueva, $100k, nivel 3, sin tocar hasta el lunes 31 a las 9:30 ET. Su ID va aquí cuando exista. |
+| Cuenta de **testing** | "Paper Trading" `PA3TQHQKM5AD` — $100.000, nivel 3. Tiene órdenes de prueba (canceladas). **Todo el desarrollo va aquí.** |
+| Cuenta de **competición** | "PAPER UC3M" `PA39HSCQE8S3` — $100.000, nivel 3, intacta. **Primera orden: lun 31 ago 9:30 ET. No tocar antes.** Sus API keys van solo en los secrets de GitHub. |
 | Repo | github.com/alvaarocl/iv-desk — **privado hasta el 4 sep**, luego público (obligatorio) |
 | Cupón Featherless | `ALPACA26` — $25, redimir en featherless.ai |
 | Ventana de P&L | **lun 31 ago 9:30 ET → snapshot equity cierre jue 3 sep** (4 sesiones: 31, 1, 2, 3) |

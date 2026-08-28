@@ -71,11 +71,16 @@ uv run pytest -q                     # tests (thin so far)
 `DESK_MODE=live` places real paper orders. **Do not set `live` until the strategy is calibrated and
 the exit manager has been verified on a real position.**
 
-### Credentials (`.env`, never committed)
+### Credentials
 
-- `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` — the hackathon paper account `PA3TQHQKM5AD` ($100k, options L3)
+- **Local `.env`** (never committed) — `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` for the **testing**
+  account `PA3TQHQKM5AD`. All local runs use this.
+- **GitHub Actions secrets** — the same names but for the **competition** account `PA39HSCQE8S3`.
+  Set these Sunday; the live cron uses them from Mon 09:30 ET.
 - `FEATHERLESS_API_KEY` — redeem coupon `ALPACA26` at featherless.ai; powers the Quant ensemble
 - `ANTHROPIC_API_KEY` — the Bull / Bear / Desk Head seats
+- Each Alpaca paper account has its **own** key pair — generate the UC3M keys from the dashboard
+  after switching to that account.
 
 ---
 
@@ -95,8 +100,9 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 - **Universe:** SPY, QQQ, IWM. All have daily expirations through the competition window.
 - **Risk posture:** consistent core book + a small (≤15% of risk budget) directional satellite sleeve.
 - **Competition trades use expirations ≤ 3 Sep** — the equity snapshot is EOD Thursday 3 Sep.
-- **Accounts:** `PA3TQHQKM5AD` is now the **testing** account (it has cancelled probe orders). A
-  **new** paper account is created for the competition and must not be touched until Mon 31 Aug 09:30 ET.
+- **Accounts:** testing = "Paper Trading" `PA3TQHQKM5AD` (has cancelled probe orders — all dev/testing
+  runs here). Competition = "PAPER UC3M" `PA39HSCQE8S3` — untouched, first order Mon 31 Aug 09:30 ET,
+  its keys live only in GitHub Actions secrets.
 
 ### Official Alpaca rules that shape the work (received 29 Aug)
 
