@@ -45,7 +45,7 @@ Everything runs on Alpaca's **paper** environment. No real money.
 
 | Module | Responsibility | State |
 |---|---|---|
-| `broker.py` | Alpaca Trading API REST client (account, orders, `mleg`, positions, cancel) | ✅ tested live |
+| `broker.py` | Trading API client (account, orders, `mleg`, positions, cancel) | ⚠️ works as REST; **migrate to Alpaca CLI shell-outs** (see decisions) |
 | `marketdata.py` | Option chain snapshots (greeks + IV), option contracts (open interest), stock bars | ✅ tested live |
 | `signal.py` | Deterministic signal: RV forecast, VRP, GEX, regime, skew → `Signal` object | ✅ runs; needs calibration |
 | `execution.py` | Strike selection (condor + vertical), sizing, deterministic exit manager, trade log | ✅ runs; exit manager untested on a real position |
@@ -88,18 +88,34 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 - **Greeks + IV:** taken from Alpaca snapshots. No Black-Scholes engine.
 - **Open interest:** only on `/v2/options/contracts`, dated T-2. Used for GEX (regime signal only, approximate is fine).
 - **DTE:** prefer 1–3 days. 0DTE only with wider stop buffers.
-- **Transport:** `httpx` + REST (`agent/broker.py`, `agent/marketdata.py`). The Alpaca CLI is wired as a
-  secondary path to satisfy the "must use MCP or CLI" requirement + for the demo.
+- **Transport:** order placement goes through the **Alpaca CLI** (`alpacahq/cli`) — the rules require
+  MCP or CLI, and the CLI is built for cron agents. `httpx` REST (`agent/marketdata.py`) is used for
+  market-data reads only. *(changed 29 Aug after Alpaca's official guidelines; `agent/broker.py` still
+  needs to be migrated from REST to CLI shell-outs.)*
 - **Universe:** SPY, QQQ, IWM. All have daily expirations through the competition window.
 - **Risk posture:** consistent core book + a small (≤15% of risk budget) directional satellite sleeve.
+- **Competition trades use expirations ≤ 3 Sep** — the equity snapshot is EOD Thursday 3 Sep.
+- **Accounts:** `PA3TQHQKM5AD` is now the **testing** account (it has cancelled probe orders). A
+  **new** paper account is created for the competition and must not be touched until Mon 31 Aug 09:30 ET.
+
+### Official Alpaca rules that shape the work (received 29 Aug)
+
+- **P&L scoring window: Mon 31 Aug 09:30 ET → total-equity snapshot EOD Thu 3 Sep.** Four sessions
+  count (31 Aug, 1–3 Sep). Friday 4 Sep and the NFP that morning do **not** count for P&L.
+- Judged on **total account equity** (not cash) + creativity, autonomy, robustness of the workflow.
+- **A user interface is NOT required** — "primarily evaluating the autonomous agent workflow and its
+  trading performance". The dashboard is optional; build it only if the agent + write-up are done.
+- Agent must start trading from the fresh competition account at Mon 31 Aug 09:30 ET; nothing earlier counts.
+- Pre-event scaffolding is allowed **but must be disclosed in the README**.
+- Free tier's latest option quotes are real-time (only historical bars/trades carry the 15-min delay).
 
 ### Open questions (need a human call)
 
-- **Regime-adaptive vs strict discipline.** As of 28 Aug the tape is low-vol (ATM IV 6–10%), so the pure
+- **Regime-adaptive vs strict discipline.** As of 29 Aug the tape is low-vol (ATM IV 6–10%), so the pure
   VRP signal produces zero trades. Leaning toward adaptive: sell condors when VRP is rich, buy cheap
   directional debit spreads when gamma is negative and the tape trends. Keeps discipline, guarantees a
-  P&L track record (which is a judged axis). Final call + parameter calibration happens Monday 31 Aug
-  with real open-market quotes.
+  P&L track record (which is a judged axis). Final call + parameter calibration happens over the
+  weekend against Friday's closing chain, ready for Mon 31 Aug 09:30 ET.
 
 ---
 
@@ -114,7 +130,9 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 
 ## What matters for judging (so you prioritise correctly)
 
-Five axes, roughly equal weight: P&L Performance, Technology Implementation, Creativity & Originality,
-Presentation & Execution, Social Engagement. We concede the P&L axis (a lucky gambler wins it in a
-6-day window) and press the other four. Reliability — actually trading all 6 days on the fresh account —
-beats ~80% of entrants on its own. See `docs/game-plan.html` for the full mapping.
+Total account equity at the Thu 3 Sep snapshot + the creativity, autonomy and robustness of the
+autonomous agent workflow. Winners are **not** picked on P&L alone, and **no UI is required**. So the
+priority order is: (1) a fresh account trading live and reliably from Mon 09:30 ET, (2) a workflow
+that is genuinely autonomous and robust (the LLM desk + risk gates + CLI execution), (3) the write-up
+and demo video, (4) social posts, (5) the dashboard only if everything else is done. See
+`docs/game-plan.html` and `docs/CONCEPT.md` for the reasoning.

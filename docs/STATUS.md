@@ -4,6 +4,30 @@
 
 ---
 
+## Reglas oficiales (guidelines de Alpaca, recibidas 29 ago)
+
+- **Ventana de scoring de P&L:** lunes **31 ago 9:30 ET → snapshot de equity a cierre del jueves 3 sep**.
+  Cuentan 4 sesiones: lun 31, mar 1, mié 2, jue 3. **El viernes 4 NO cuenta para P&L.**
+- Se juzga por **equity total de la cuenta** (no caja) + creatividad, autonomía y robustez del workflow.
+  No hay Sharpe/Sortino/drawdown como métrica, solo equity. Sin scoreboard en vivo.
+- **La UI NO es obligatoria.** *"We are primarily evaluating the autonomous agent workflow and its
+  trading performance."* → el dashboard pasa a **opcional**.
+- El agente debe **empezar a operar el lunes 31 a las 9:30 ET desde la cuenta de competición**.
+  Nada anterior cuenta. Los trades en la cuenta de testing no puntúan.
+- **Cuenta nueva obligatoria** para la submission ($100k). La de testing no se puede usar para el
+  P&L oficial. Se puede crear otra con el mismo email.
+- **Transporte:** vale MCP o CLI; alpaca-py vale "para gestionar el loop en tu propio código";
+  si usas un SDK, prioriza los oficiales. → decisión: **rutar la ejecución por el CLI de Alpaca**.
+- El MCP oficial de Alpaca soporta opciones (contratos, chains, quotes, griegas, órdenes single y
+  multi-leg). Las quotes más recientes del feed gratis SON en tiempo real (el retraso de 15 min es
+  solo histórico).
+- **Trabajo pre-evento permitido pero hay que declararlo** en el README.
+- Repo puede seguir privado durante el hackathon.
+- **Consecuencia clave:** las operaciones de competición usan **expiraciones ≤ 3 sep**. El libro
+  debe estar resuelto o bien marcado a cierre del jueves 3.
+
+---
+
 ## Resumen en una línea
 
 Motor determinista construido y probado contra el mercado real (~40% del proyecto).
@@ -31,15 +55,17 @@ entrega.
 
 | Tarea | Lane | Prioridad |
 |---|---|---|
+| **Cambiar `execution.py` para colocar órdenes vía CLI de Alpaca** (no REST) | A | Alta — requisito de las reglas |
+| Crear cuenta paper NUEVA para competición, no tocarla hasta el lunes 9:30 ET | humano | Alta — bloquea el "en vivo" |
 | Capa de IA: Quant ensemble (Featherless) + Bull / Bear / Desk Head + debate | A | Alta — es el diferenciador |
-| Calibrar la señal con quotes de mercado abierto (lunes 31 ago) | A | Alta — bloquea el "en vivo" |
+| Calibrar la señal con la cadena del cierre del viernes | A | Alta — bloquea el "en vivo" |
 | Decidir modo adaptativo vs disciplina estricta | humano | Alta — bloquea calibración |
 | Agregación de delta de cartera (ahora el gate usa 0) | A | Media |
-| Probar el exit manager sobre una posición real (abrir condor mínimo, ver que cierra) | A | Alta antes de ir en vivo |
-| Poner secrets en GitHub, activar el cron | A | Media |
-| Dashboard "trading floor" (Next.js / Vercel) | B | Alta — segundo diferenciador |
-| Registro de predicciones en el dashboard | B | Media |
-| Reflexión nocturna (post-mortem + ajuste de parámetros) | A | Baja — primera en la lista de recortes |
+| Probar el exit manager sobre una posición real en la cuenta de TESTING | A | Alta antes de ir en vivo |
+| Poner secrets en GitHub (keys de la cuenta de COMPETICIÓN), activar el cron | A | Media |
+| Disclosure de trabajo pre-evento en el README | C | Alta — requisito |
+| Reflexión nocturna (post-mortem + ajuste de parámetros) | A | Baja — lista de recortes |
+| Dashboard "trading floor" (Next.js / Vercel) | B | **Opcional** — UI no obligatoria; solo si sobra tiempo |
 | One-page write-up (`write-up.md`) | C | Alta — entregable obligatorio |
 | Vídeo demo + slide deck + cover image | C | Alta — entregables obligatorios |
 | Posts de redes (build in public), hasta 5 | C | Media — premio aparte |
@@ -55,10 +81,13 @@ Fijadas por los probes de Día 0 (`../probes/RESULTS.md`). No revisar sin motivo
 - **Griegas + IV:** de los snapshots de Alpaca. Sin motor de Black-Scholes propio.
 - **Open interest:** solo en `/v2/options/contracts`, con retraso T-2. Vale para el GEX (régimen, aproximado).
 - **DTE:** preferir 1–3 días. 0DTE solo con stops más anchos.
-- **Transporte:** `httpx` + REST. El CLI de Alpaca se cablea como vía secundaria para cumplir el requisito "MCP o CLI".
+- **Transporte:** ~~`httpx` + REST~~ → **CLI de Alpaca para la ejecución de órdenes** (las reglas piden
+  MCP o CLI). REST/`httpx` se mantiene solo para lecturas de market data. *(cambiado 29 ago tras las guidelines)*
 - **Universo:** SPY, QQQ, IWM. Los tres tienen expiración diaria toda la semana.
 - **Postura de riesgo:** núcleo consistente + sleeve satélite direccional (≤15% del presupuesto de riesgo).
 - **Concepto:** IV Desk completo (VRP + GEX + mesa de agentes). Plan B documentado en `CONCEPT.md`.
+- **Expiraciones de competición:** ≤ 3 sep (snapshot de equity a cierre del jueves 3).
+- **Cuenta:** `PA3TQHQKM5AD` = testing. Cuenta de competición = nueva, creada el finde, intacta hasta el lunes.
 
 ## Decisiones abiertas
 
@@ -75,9 +104,10 @@ Fijadas por los probes de Día 0 (`../probes/RESULTS.md`). No revisar sin motivo
 
 | | |
 |---|---|
-| Cuenta paper (submission) | `PA3TQHQKM5AD` — $100.000, opciones nivel 3, creada 28 ago 2026 |
+| Cuenta de **testing** | `PA3TQHQKM5AD` — $100.000, opciones nivel 3, creada 28 ago 2026. Ya tiene órdenes de prueba (canceladas). |
+| Cuenta de **competición** | **por crear este finde** — nueva, $100k, nivel 3, sin tocar hasta el lunes 31 a las 9:30 ET. Su ID va aquí cuando exista. |
 | Repo | github.com/alvaarocl/iv-desk — **privado hasta el 4 sep**, luego público (obligatorio) |
 | Cupón Featherless | `ALPACA26` — $25, redimir en featherless.ai |
-| Fin de submissions | **4 sep 2026, 17:00 CEST** |
-| Sesiones de mercado | 28, 31 ago · 1, 2, 3, 4 sep (6 días) |
-| NFP | 4 sep, 8:30 ET / 14:30 España — último día, el blackout debe funcionar |
+| Ventana de P&L | **lun 31 ago 9:30 ET → snapshot equity cierre jue 3 sep** (4 sesiones: 31, 1, 2, 3) |
+| Fin de submissions (lablab) | **4 sep 2026, 17:00 CEST** |
+| Expiraciones de competición | ≤ 3 sep |

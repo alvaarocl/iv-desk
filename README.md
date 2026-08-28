@@ -70,3 +70,20 @@ data/         journal.jsonl, equity.csv, gex cache (git-tracked audit trail)
 ```
 
 See `PLAN.md` for the day-by-day plan and `docs/strategy-spec.md` for signal + risk-gate detail.
+
+---
+
+## Pre-event work disclosure
+
+Per the hackathon rules, work done before the official P&L window (Mon 31 Aug 09:30 ET) is disclosed here:
+
+- This repository was created on **28 Aug 2026** (kickoff day). Initial commits are the project
+  scaffold, documentation, Day-0 API de-risking probes, and the deterministic trading engine
+  (`agent/`), all developed 28–30 Aug.
+- All prototyping and testing before the P&L window ran on a **separate testing paper account**
+  (`PA3TQHQKM5AD`). The official competition account is a fresh $100,000 paper account that places
+  its first order on **Mon 31 Aug 09:30 ET** and is used for nothing before then.
+- No pre-existing private libraries are depended on. Third-party dependencies are listed in
+  `pyproject.toml`.
+- The agent, its options workflow (Alpaca Trading API via the CLI), and the LLM desk layer were all
+  built during the event.
