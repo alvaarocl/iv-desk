@@ -6,11 +6,13 @@
 
 ## Instruments
 
-Defined-risk short-premium structures, 0–4 DTE:
+Defined-risk short-premium structures. **Prefer 1–3 DTE** (indicative feed is ~2s fresh but not
+full OPRA; 0DTE only with wider stop buffers). Iron condors go as a **single 4-leg `mleg` order** —
+confirmed working on this paper account (see `probes/RESULTS.md`).
 
 | Regime (from signal) | Structure |
 |---|---|
-| Range-bound, positive GEX, rich VRP | **Iron condor** (or 2× vertical credit spreads if `mleg` 4-leg unsupported) |
+| Range-bound, positive GEX, rich VRP | **Iron condor** (4-leg `mleg`) |
 | Mild directional lean, rich VRP | **Put credit spread** (bullish) / **Call credit spread** (bearish) |
 | Trending, negative GEX | **Stand down**, or satellite **debit spread** in trend direction |
 | VRP not rich | **No trade** |
