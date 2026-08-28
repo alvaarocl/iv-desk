@@ -6,6 +6,22 @@ It does not trade price. It trades the **volatility risk premium**, gated by **d
 
 ---
 
+## New here? Read these first
+
+| Doc | For |
+|---|---|
+| [`docs/CONCEPT.md`](docs/CONCEPT.md) | **Plain-language** explanation — what it does, why it wins, alternatives we considered. Start here if you're not a trader. |
+| [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…). |
+| [`docs/STATUS.md`](docs/STATUS.md) | What works now, what's left, decisions locked vs open. |
+| [`docs/strategy-spec.md`](docs/strategy-spec.md) | The precise strategy — signal maths, strike selection, every risk gate. |
+| [`docs/game-plan.html`](docs/game-plan.html) | The strategy + 7-day plan as a designed one-pager (open in a browser). |
+| [`PLAN.md`](PLAN.md) | Day-by-day task checklist. |
+| [`CLAUDE.md`](CLAUDE.md) | Orientation for a fresh Claude Code session in this repo. |
+
+The rest of this README is the technical thesis.
+
+---
+
 ## Thesis
 
 Short-dated index options are structurally overpriced: implied volatility tends to exceed subsequently realized volatility (the *volatility risk premium*, VRP). Harvesting that premium is positive expectancy **only when you are disciplined about (a) when the premium is actually rich, (b) what the dealer-hedging regime is doing to price dynamics, and (c) mechanical trade management.** Humans are not disciplined about those. An agent can be.
