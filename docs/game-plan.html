@@ -1,0 +1,491 @@
+<title>IV Desk Game Plan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --bg: #F4F6F8;
+    --surface: #FFFFFF;
+    --surface-2: #EEF1F4;
+    --ink: #16202E;
+    --muted: #59697C;
+    --line: #D9DFE6;
+    --premium: #B9772A;      /* VRP / theta harvest — sodium amber, desaturated for light */
+    --signal: #2E8B99;       /* data / structure — cool teal */
+    --gain: #2F8F5F;
+    --loss: #C0524A;
+    --shadow: 0 1px 2px rgba(22,32,46,.06), 0 8px 24px rgba(22,32,46,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0B1017;
+      --surface: #121A24;
+      --surface-2: #182430;
+      --ink: #E3E9F1;
+      --muted: #8A99AC;
+      --line: #243343;
+      --premium: #E0A34A;
+      --signal: #4FBBC9;
+      --gain: #46B27C;
+      --loss: #E06B60;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.28);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B1017;
+    --surface: #121A24;
+    --surface-2: #182430;
+    --ink: #E3E9F1;
+    --muted: #8A99AC;
+    --line: #243343;
+    --premium: #E0A34A;
+    --signal: #4FBBC9;
+    --gain: #46B27C;
+    --loss: #E06B60;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px rgba(0,0,0,.28);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 4rem) clamp(1.1rem, 4vw, 2.5rem) 6rem;
+  }
+
+  /* ---- typographic system ---- */
+  h1, h2, h3, .label, .rail, th, .tag, .chip {
+    font-family: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  }
+  .mono, td.num, .k, code, .param {
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 6vw, 3.4rem);
+    line-height: 1.04;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 .6rem;
+  }
+  h2 {
+    font-size: clamp(1.3rem, 3.2vw, 1.7rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 1rem;
+    padding-bottom: .55rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  h3 {
+    font-size: 1.06rem;
+    font-weight: 600;
+    margin: 0 0 .35rem;
+    letter-spacing: -0.005em;
+  }
+  p { margin: 0 0 1rem; max-width: 66ch; }
+  a { color: var(--signal); text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  .label {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  section { margin-top: 3.4rem; }
+
+  /* ---- masthead ---- */
+  .masthead { border-top: 4px solid var(--premium); padding-top: 1.6rem; }
+  .eyebrow {
+    display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; align-items: baseline;
+    margin-bottom: 1.4rem;
+  }
+  .eyebrow .label { color: var(--ink); }
+  .lede {
+    font-size: clamp(1.12rem, 2.4vw, 1.35rem);
+    line-height: 1.5;
+    color: var(--ink);
+    max-width: 60ch;
+    margin-bottom: 1.8rem;
+  }
+  .lede .hl { color: var(--premium); font-style: italic; }
+
+  /* ---- status rail ---- */
+  .rail {
+    display: flex; flex-wrap: wrap; gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  .rail div {
+    flex: 1 1 140px;
+    padding: .8rem 1rem;
+    border-right: 1px solid var(--line);
+  }
+  .rail div:last-child { border-right: 0; }
+  .rail .k { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: .2rem; }
+  .rail .v { font-family: "JetBrains Mono", monospace; font-size: 1rem; font-weight: 500; color: var(--ink); }
+  .rail .v.amber { color: var(--premium); }
+
+  /* ---- cards ---- */
+  .layers { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-top: 1.4rem; }
+  @media (min-width: 720px) { .layers { grid-template-columns: repeat(3, 1fr); } }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.3rem 1.2rem;
+    box-shadow: var(--shadow);
+  }
+  .card .n {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .8rem; font-weight: 600;
+    color: var(--premium);
+    display: block; margin-bottom: .5rem;
+  }
+  .card p { font-size: .95rem; margin: 0; color: var(--muted); }
+  .card p strong { color: var(--ink); }
+
+  /* ---- tables ---- */
+  .tbl-scroll { overflow-x: auto; margin-top: 1.2rem; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: .93rem; min-width: 560px; }
+  th {
+    text-align: left; font-size: .68rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); padding: .8rem 1rem; border-bottom: 1px solid var(--line);
+    background: var(--surface-2); white-space: nowrap;
+  }
+  td { padding: .85rem 1rem; border-bottom: 1px solid var(--line); vertical-align: top; line-height: 1.45; }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--muted); }
+  .win td:first-child { box-shadow: inset 3px 0 0 var(--premium); }
+  .axis-name { font-family: "Archivo", sans-serif; font-weight: 600; color: var(--ink); }
+
+  /* ---- build status ---- */
+  .cols { display: grid; gap: 1.4rem; grid-template-columns: 1fr; margin-top: 1.2rem; }
+  @media (min-width: 680px) { .cols { grid-template-columns: 1fr 1fr; } }
+  ul.check { list-style: none; padding: 0; margin: 0; }
+  ul.check li { position: relative; padding-left: 1.7rem; margin-bottom: .55rem; font-size: .95rem; line-height: 1.4; }
+  ul.check li::before {
+    position: absolute; left: 0; top: 0;
+    font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: .85rem;
+  }
+  ul.check.done li::before { content: "✓"; color: var(--gain); }
+  ul.check.todo li::before { content: "○"; color: var(--muted); }
+
+  /* ---- day plan ---- */
+  .days { margin-top: 1.2rem; display: grid; gap: 0; }
+  .day {
+    display: grid; grid-template-columns: 3.2rem 1fr; gap: 1rem;
+    padding: 1rem 0; border-top: 1px solid var(--line);
+  }
+  .day:last-child { border-bottom: 1px solid var(--line); }
+  .day .d {
+    font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: .85rem;
+    color: var(--premium); padding-top: .1rem;
+  }
+  .day .when { font-family: "Archivo", sans-serif; font-weight: 600; font-size: .95rem; color: var(--ink); display: block; margin-bottom: .15rem; }
+  .day p { font-size: .93rem; margin: 0; color: var(--muted); max-width: 62ch; }
+  .day.friday { background: linear-gradient(90deg, color-mix(in srgb, var(--premium) 9%, transparent), transparent 70%); }
+
+  /* ---- decisions / risks ---- */
+  .split { display: grid; gap: 1rem; grid-template-columns: 1fr; margin-top: 1.2rem; }
+  @media (min-width: 680px) { .split { grid-template-columns: 1fr 1fr; } }
+  .box { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 1.2rem; box-shadow: var(--shadow); }
+  .box.open { border-style: dashed; }
+  .box h3 { display: flex; align-items: center; gap: .5rem; }
+  .box h3 .chip {
+    font-size: .62rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+    padding: .18rem .5rem; border-radius: 999px;
+  }
+  .chip.lock { background: color-mix(in srgb, var(--signal) 18%, transparent); color: var(--signal); }
+  .chip.q { background: color-mix(in srgb, var(--premium) 20%, transparent); color: var(--premium); }
+  .box ul { margin: .5rem 0 0; padding-left: 1.1rem; }
+  .box li { font-size: .92rem; margin-bottom: .4rem; line-height: 1.4; }
+  .box .param { font-size: .85rem; color: var(--premium); }
+
+  .risk { padding: .9rem 0; border-top: 1px solid var(--line); }
+  .risk:last-child { border-bottom: 1px solid var(--line); }
+  .risk h3 { font-size: .98rem; margin-bottom: .2rem; }
+  .risk p { font-size: .92rem; margin: 0; color: var(--muted); max-width: 64ch; }
+
+  .foot { margin-top: 4rem; padding-top: 1.4rem; border-top: 1px solid var(--line); font-size: .85rem; color: var(--muted); }
+  .foot .mono { font-size: .8rem; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    section, .masthead { animation: rise .5s ease both; }
+    section:nth-of-type(1) { animation-delay: .04s; }
+    section:nth-of-type(2) { animation-delay: .08s; }
+    section:nth-of-type(3) { animation-delay: .12s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">
+      <span class="label">IV Desk</span>
+      <span class="label">Alpaca AI Trading Agents Hackathon</span>
+      <span class="label">28 Aug – 4 Sep 2026</span>
+    </div>
+    <h1>The game plan</h1>
+    <p class="lede">
+      An autonomous options <span class="hl">desk</span> that harvests the volatility risk premium on
+      index ETFs, gated by dealer gamma positioning — run by named AI agents whose every decision is a
+      public, falsifiable transcript.
+    </p>
+    <div class="rail">
+      <div><span class="k">Account</span><span class="v mono">PA3TQHQKM5AD</span></div>
+      <div><span class="k">Balance</span><span class="v mono">$100,000</span></div>
+      <div><span class="k">Harness</span><span class="v amber">live · tested</span></div>
+      <div><span class="k">Build</span><span class="v amber">~40%</span></div>
+      <div><span class="k">Submit by</span><span class="v mono">Sep 4 · 17:00 CEST</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2>The proposal</h2>
+    <p>
+      Not "an AI that picks stocks." IV Desk is a disciplined premium-selling engine with an LLM
+      judgment layer on top and a live dashboard anyone can watch operate. It trades defined-risk
+      structures — iron condors and vertical credit spreads, 1–3 DTE — on <strong>SPY, QQQ and IWM</strong>,
+      and it only sells premium when the options surface says premium is genuinely rich <em>and</em>
+      dealer hedging supports the structure.
+    </p>
+    <p>
+      The competition draws ~2,000 entrants. Almost all will submit some version of the same thing:
+      a bull/bear multi-agent that sells SPY credit spreads on an RSI signal. We win by being different
+      in the three places that matter.
+    </p>
+  </section>
+
+  <section>
+    <h2>Why this wins — three layers</h2>
+    <div class="layers">
+      <div class="card">
+        <span class="n">01 — THE MOAT</span>
+        <h3>Options-native signal</h3>
+        <p><strong>VRP + GEX, not RSI.</strong> We measure implied vs forecast realized vol, and
+        aggregate dealer gamma from open interest. ~1,900 of 2,000 wrap a price indicator in options.
+        Almost none know what dealer gamma is.</p>
+      </div>
+      <div class="card">
+        <span class="n">02 — THE FILTER</span>
+        <h3>It actually runs 6 days</h3>
+        <p>Deterministic exit manager, circuit breakers, event blackouts. The "fresh account +
+        verifiable P&amp;L" rule washes out ~80% of entrants. Reliable execution alone is top-20%.</p>
+      </div>
+      <div class="card">
+        <span class="n">03 — THE STAGE</span>
+        <h3>You can watch it think</h3>
+        <p>Live "trading floor" dashboard, a prediction ledger grading every thesis, debate
+        transcripts. Clones ship a repo and a screen recording. This wins Presentation and feeds Social.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>How it maps to the five judging axes</h2>
+    <p>The five criteria carry roughly equal weight (~20% each). We concede one and press the other four.</p>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr><th>Axis</th><th>Our play</th><th>Honest read</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="axis-name">P&amp;L Performance</td>
+            <td>Consistent core + regime adaptation + directional satellite ≤ 15% of risk budget. Positive and modest; never blow up.</td>
+            <td class="num">Concede. A lucky 0DTE gambler wins this. Goal: not finish red.</td>
+          </tr>
+          <tr class="win">
+            <td class="axis-name">Technology Implementation</td>
+            <td>CLI for the production loop · MCP server for the demo · option snapshots (greeks/IV) · OI for GEX · 4-leg <span class="k">mleg</span> condors · Featherless model ensemble.</td>
+            <td class="num">Press. Deep, real use of the whole stack.</td>
+          </tr>
+          <tr class="win">
+            <td class="axis-name">Creativity &amp; Originality</td>
+            <td>Adversarial desk grounded in the vol surface + gamma regime (not fundamentals or news) · nightly self-reflection · public prediction ledger.</td>
+            <td class="num">Press. Debate alone isn't novel — the gamma grounding is.</td>
+          </tr>
+          <tr class="win">
+            <td class="axis-name">Presentation &amp; Execution</td>
+            <td>Live trading-floor dashboard · one-page write-up · demo video featuring the debate and the moment the risk officer refuses to trade into NFP.</td>
+            <td class="num">Press. Wins if the dashboard is polished.</td>
+          </tr>
+          <tr class="win">
+            <td class="axis-name">Social Engagement</td>
+            <td>Daily build-in-public thread, the dashboard as the shareable hook, tagging @lablabai and @AlpacaHQ.</td>
+            <td class="num">Press. Two $500 prizes; high ROI for the effort.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where the build stands</h2>
+    <div class="cols">
+      <div>
+        <span class="label">Done — tested live against the real chain</span>
+        <ul class="check done" style="margin-top:.7rem">
+          <li>REST clients: account, orders, <span class="k">mleg</span>, chain snapshots, OI, bars</li>
+          <li>Signal: Yang-Zhang + EWMA RV forecast, VRP, GEX from OI, ADX/EMA regime, skew</li>
+          <li>Execution: condor &amp; vertical strike selection at target delta, risk-based sizing</li>
+          <li>Deterministic exit manager: 50% take-profit / 2× stop / expiry close</li>
+          <li>Risk officer: every gate, wired into the loop</li>
+          <li>Desk loop in <span class="k">dry_run</span>: full decision path logged to the journal</li>
+        </ul>
+      </div>
+      <div>
+        <span class="label">Left to build</span>
+        <ul class="check todo" style="margin-top:.7rem">
+          <li>LLM desk: Quant ensemble (Featherless) + Bull / Bear / Desk Head</li>
+          <li>Calibrate the signal against open-market quotes</li>
+          <li>Portfolio net-delta aggregation</li>
+          <li>Live dashboard (Next.js / Vercel) + prediction ledger</li>
+          <li>GitHub secrets + scheduled loop, first real exit-manager test</li>
+          <li>Nightly reflection · write-up · demo video · slide deck</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The plan, day by day</h2>
+    <div class="days">
+      <div class="day">
+        <span class="d">SAT<br>SUN</span>
+        <div>
+          <span class="when">Market closed — the heavy lift</span>
+          <p>Build the LLM desk layer. Calibrate the signal. Build the dashboard. Keep the loop
+          running in dry_run the whole weekend so Monday is a flip, not a scramble.</p>
+        </div>
+      </div>
+      <div class="day">
+        <span class="d">MON</span>
+        <div>
+          <span class="when">Go live — minimum size</span>
+          <p>0.5% NAV risk per trade, 3 positions max. Watch every 15-minute invocation. Fix bugs on
+          the spot. Confirm one real position opens and the exit manager closes it correctly.</p>
+        </div>
+      </div>
+      <div class="day">
+        <span class="d">TUE</span>
+        <div>
+          <span class="when">Scale + content</span>
+          <p>Move to target sizing if Monday was clean. First nightly reflection. Start the
+          build-in-public cadence with real P&amp;L.</p>
+        </div>
+      </div>
+      <div class="day">
+        <span class="d">WED</span>
+        <div>
+          <span class="when">Dashboard done</span>
+          <p>Dashboard feature-complete, polished, deployed at its final URL. Record screen clips of
+          the desk debating and executing.</p>
+        </div>
+      </div>
+      <div class="day">
+        <span class="d">THU</span>
+        <div>
+          <span class="when">Submission materials</span>
+          <p>Write the one-pager. Record and edit the demo video. Build the deck and cover image.
+          The desk keeps trading.</p>
+        </div>
+      </div>
+      <div class="day friday">
+        <span class="d">FRI</span>
+        <div>
+          <span class="when">Last session — submit today</span>
+          <p>Confirm the NFP blackout gate holds at 08:30 ET. Desk closes / lets expire everything —
+          flat book by 16:00 ET. Lock P&amp;L, finalize every submission field incl. the account ID,
+          submit before 17:00 CEST.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Decisions</h2>
+    <div class="split">
+      <div class="box">
+        <h3><span class="chip lock">Locked</span> Settled by the Day-0 probes</h3>
+        <ul>
+          <li>Iron condor as a single 4-leg <span class="k">mleg</span> order — confirmed on paper</li>
+          <li><span class="k">feed=indicative</span> for greeks + IV (~2s fresh; OPRA is a paid add-on)</li>
+          <li>Prefer <span class="param">1–3 DTE</span>; 0DTE only with wider stop buffers</li>
+          <li>Transport: <span class="k">httpx</span> + REST; CLI wired as the secondary path</li>
+          <li>Universe: SPY, QQQ, IWM — all have daily expirations through the window</li>
+          <li>Risk posture: consistent core + small directional satellite</li>
+        </ul>
+      </div>
+      <div class="box open">
+        <h3><span class="chip q">Open</span> Needs a call</h3>
+        <ul>
+          <li><strong>Regime-adaptive desk vs strict discipline.</strong> Current low-vol tape
+          (ATM IV 6–10%) makes the pure signal sit on its hands. Recommendation: adaptive — sell
+          condors when VRP is rich, buy cheap directional debit spreads when gamma is negative and
+          the tape trends. Keeps discipline, guarantees a track record.</li>
+          <li>Final parameter calibration Monday with real open-market quotes:
+          <span class="param">vrp_min</span>, <span class="param">short_delta</span>,
+          <span class="param">min_credit_frac</span>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Risks we're not hiding from</h2>
+    <div class="risk">
+      <h3>A low-volatility week</h3>
+      <p>Thin premium means P&amp;L may be small even when the strategy is "right." Mitigated by the
+      adaptive mode and the directional satellite, not eliminated.</p>
+    </div>
+    <div class="risk">
+      <h3>Six days is a variance lottery</h3>
+      <p>On the P&amp;L axis specifically, one trend day can erase a week of condor gains. This is why
+      we don't stake the project on that axis.</p>
+    </div>
+    <div class="risk">
+      <h3>Scope in three days, two people</h3>
+      <p>LLM desk + dashboard + content is tight. The cut-list is explicit: reflection loop first,
+      then the ensemble collapses to one model, then the debate collapses to the Desk Head reading
+      the signal directly. The core loop and risk gates never get cut.</p>
+    </div>
+    <div class="risk">
+      <h3>The debate structure isn't original by itself</h3>
+      <p>The <span class="k">ai-hedge-fund</span> repo already does bull/bear/judge and many will copy
+      it. Our originality budget is spent on the signal — the vol-surface grounding — not the theater.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Social cadence</h2>
+    <p>One post per day on X and LinkedIn, tagging both sponsors — up to 5 links go in the submission.
+    Day 0: what we're building and why VRP/GEX beats RSI. Then: the architecture, the risk gates,
+    going live, a mid-week P&amp;L update, the final results. The dashboard link is the hook in every post.</p>
+  </section>
+
+  <div class="foot">
+    <p>IV Desk · repo <span class="mono">github.com/alvaarocl/iv-desk</span> (private until 4 Sep) ·
+    account <span class="mono">PA3TQHQKM5AD</span> · this document is the team's working reference,
+    not a submission artifact.</p>
+  </div>
+
+</div>
