@@ -1,0 +1,42 @@
+name: IV Desk loop
+
+on:
+  schedule:
+    # Every 15 min, 13:30–20:15 UTC, Mon–Fri  (~09:30–16:15 ET). GitHub cron is UTC and best-effort.
+    - cron: "*/15 13-20 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry_run or live"
+        default: "dry_run"
+
+concurrency:
+  group: desk-loop
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      FEATHERLESS_API_KEY: ${{ secrets.FEATHERLESS_API_KEY }}
+      FEATHERLESS_MODELS: ${{ vars.FEATHERLESS_MODELS }}
+      DESK_MODE: ${{ github.event.inputs.mode || vars.DESK_MODE || 'dry_run' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Alpaca CLI
+        run: |
+          curl -sL https://github.com/alpacahq/cli/releases/latest/download/alpaca_Linux_x86_64.tar.gz \
+            | tar xz && sudo mv alpaca /usr/local/bin/ && alpaca version
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run python -m agent.desk
+      - name: Persist journal
+        if: always()
+        run: |
+          git config user.name "iv-desk-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add data/ && git diff --cached --quiet || git commit -m "loop $(date -u +%FT%TZ)"
+          git push || true
