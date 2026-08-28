@@ -39,7 +39,7 @@ class Params:
     no_new_0dte_after_et: str = "14:00"
 
     @classmethod
-    def load(cls) -> "Params":
+    def load(cls) -> Params:
         if PARAMS_FILE.exists():
             return cls(**{**asdict(cls()), **json.loads(PARAMS_FILE.read_text())})
         return cls()
@@ -51,5 +51,9 @@ class Params:
 
 ALPACA_KEY = os.environ.get("ALPACA_API_KEY", "")
 ALPACA_SECRET = os.environ.get("ALPACA_SECRET_KEY", "")
-DESK_MODE = os.environ.get("DESK_MODE", "dry_run")  # dry_run | live
 FEATHERLESS_MODELS = [m for m in os.environ.get("FEATHERLESS_MODELS", "").split(",") if m]
+
+
+def desk_mode() -> str:
+    """dry_run | live — read fresh each loop so workflow_dispatch can flip it."""
+    return os.environ.get("DESK_MODE", "dry_run").strip().lower()
