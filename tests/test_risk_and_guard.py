@@ -72,13 +72,24 @@ def test_live_mode_refuses_wrong_account(monkeypatch):
         desk._guard_account("live", NOON)
 
 
-def test_competition_account_refused_before_window(monkeypatch):
+@pytest.mark.parametrize("mode", ["live", "exits_only"])
+def test_competition_account_order_modes_refused_before_window(monkeypatch, mode):
     monkeypatch.setattr(desk, "COMPETITION_ACCOUNT", "PA39HSCQE8S3")
     monkeypatch.setattr(broker, "account", lambda: {"account_number": "PA39HSCQE8S3",
                                                     "equity": "100000"})
     early = datetime(2026, 8, 30, 12, 0, tzinfo=ET)
     with pytest.raises(broker.BrokerError, match="TOO EARLY"):
-        desk._guard_account("dry_run", early)
+        desk._guard_account(mode, early)
+
+
+def test_competition_account_dry_run_allowed_before_window(monkeypatch):
+    # dry_run places nothing, so the CI pipeline can be smoke-tested over the weekend.
+    monkeypatch.setattr(desk, "COMPETITION_ACCOUNT", "PA39HSCQE8S3")
+    monkeypatch.setattr(broker, "account", lambda: {"account_number": "PA39HSCQE8S3",
+                                                    "equity": "100000"})
+    early = datetime(2026, 8, 30, 12, 0, tzinfo=ET)
+    acct = desk._guard_account("dry_run", early)
+    assert acct["account_number"] == "PA39HSCQE8S3"
 
 
 def test_testing_account_dry_run_is_allowed(monkeypatch):

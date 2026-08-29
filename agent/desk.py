@@ -117,21 +117,27 @@ def _peak_nav(current: float) -> float:
 def _guard_account(mode: str, now: datetime) -> dict:
     """Hard stop on trading the wrong account, in either direction.
 
-    Two failure modes, both unrecoverable: trading the testing account in live mode scores
-    nothing, and touching the competition account early (or by hand) breaks the requirement that
-    its history be 100% agent-driven.
+    Two failure modes, both unrecoverable: trading the testing account in an order-placing mode
+    scores nothing, and placing an order on the competition account before the window breaks the
+    requirement that its trading history be 100% agent-driven from Mon 09:30 ET.
+
+    `dry_run` places nothing (see execution.open_trade / manage_exits / reconcile — every order
+    call is gated on `mode == "live"`), so it is allowed against the competition account before
+    the window: that is exactly how the CI pipeline is smoke-tested over the weekend. Only the
+    order-placing modes are blocked early.
     """
+    places_orders = mode in ("live", "exits_only")
     acct = broker.account()
     actual = acct.get("account_number")
-    if mode == "live" and COMPETITION_ACCOUNT and actual != COMPETITION_ACCOUNT:
+    if places_orders and COMPETITION_ACCOUNT and actual != COMPETITION_ACCOUNT:
         raise broker.BrokerError(
-            f"ACCOUNT MISMATCH — live mode expects {COMPETITION_ACCOUNT!r}, credentials point at "
-            f"{actual!r}. Refusing to place any order."
+            f"ACCOUNT MISMATCH — {mode} mode expects {COMPETITION_ACCOUNT!r}, credentials point "
+            f"at {actual!r}. Refusing to place any order."
         )
-    if actual == COMPETITION_ACCOUNT and COMPETITION_ACCOUNT and now < COMPETITION_OPEN_ET:
+    if places_orders and actual == COMPETITION_ACCOUNT and now < COMPETITION_OPEN_ET:
         raise broker.BrokerError(
             f"TOO EARLY — {actual!r} is the competition account and the P&L window opens "
-            f"{COMPETITION_OPEN_ET:%Y-%m-%d %H:%M %Z}. Refusing to touch it."
+            f"{COMPETITION_OPEN_ET:%Y-%m-%d %H:%M %Z}. Refusing to place an order."
         )
     return acct
 
