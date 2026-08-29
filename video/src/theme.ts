@@ -1,5 +1,6 @@
 import {loadFont as loadMono} from '@remotion/google-fonts/IBMPlexMono';
 import {loadFont as loadSans} from '@remotion/google-fonts/IBMPlexSans';
+import {spring} from 'remotion';
 
 const mono = loadMono('normal', {weights: ['400', '500', '600']});
 const sans = loadSans('normal', {weights: ['400', '500', '600', '700']});
@@ -21,4 +22,16 @@ export const C = {
   todo: '#667085',
 } as const;
 
-export const FPS = 30;
+export const FPS = 60;
+
+/** Snappy entrance — settles in ~10 frames with a tiny overshoot. Use everywhere. */
+export const snap = (frame: number, fps: number, delay = 0) =>
+  spring({
+    frame: frame - delay,
+    fps,
+    config: {damping: 18, stiffness: 160, mass: 0.7},
+  });
+
+/** Softer, for hero numbers that should feel weighty, not bouncy. */
+export const glide = (frame: number, fps: number, delay = 0, durationInFrames = 24) =>
+  spring({frame: frame - delay, fps, durationInFrames, config: {damping: 26, stiffness: 90}});

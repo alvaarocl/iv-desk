@@ -1,6 +1,6 @@
 import React from 'react';
-import {useCurrentFrame, spring, useVideoConfig, interpolate} from 'remotion';
-import {C, MONO, SANS} from '../theme';
+import {useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
+import {C, MONO, SANS, snap} from '../theme';
 
 export const GateRow: React.FC<{
   name: string;
@@ -12,9 +12,14 @@ export const GateRow: React.FC<{
 }> = ({name, rule, value, detail, pass, delay}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const enter = spring({frame: frame - delay, fps, config: {damping: 200}});
-  const resolve = spring({frame: frame - delay - 14, fps, config: {damping: 200}});
+  const enter = snap(frame, fps, delay);
+  const resolve = snap(frame, fps, delay + 10);
   const col = pass ? C.up : C.down;
+  // brief flash on the pill the moment it resolves
+  const flash = interpolate(frame - delay - 10, [0, 5, 16], [0, 1, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
 
   return (
     <div
@@ -27,15 +32,13 @@ export const GateRow: React.FC<{
         borderRadius: 14,
         background: C.surface,
         border: `1px solid ${C.line}`,
-        opacity: enter,
-        transform: `translateX(${(1 - enter) * -40}px)`,
+        opacity: Math.min(1, enter),
+        transform: `translateX(${(1 - enter) * -50}px)`,
       }}
     >
       <div>
         <div style={{fontFamily: MONO, fontSize: 30, color: C.ink}}>{name}</div>
-        <div
-          style={{fontFamily: SANS, fontSize: 18, color: C.muted, marginTop: 4, lineHeight: 1.3}}
-        >
+        <div style={{fontFamily: SANS, fontSize: 18, color: C.muted, marginTop: 4, lineHeight: 1.3}}>
           {detail}
         </div>
       </div>
@@ -46,7 +49,7 @@ export const GateRow: React.FC<{
             fontFamily: MONO,
             fontSize: 26,
             color: col,
-            opacity: resolve,
+            opacity: Math.min(1, resolve),
             whiteSpace: 'nowrap',
           }}
         >
@@ -62,8 +65,9 @@ export const GateRow: React.FC<{
             border: `1px solid ${col}`,
             borderRadius: 999,
             padding: '4px 12px',
-            opacity: resolve,
-            transform: `scale(${interpolate(resolve, [0, 1], [0.8, 1])})`,
+            opacity: Math.min(1, resolve),
+            transform: `scale(${interpolate(Math.min(1, resolve), [0, 1], [0.7, 1]) + flash * 0.06})`,
+            boxShadow: `0 0 ${flash * 22}px ${col}`,
           }}
         >
           {pass ? 'pass' : 'stand down'}

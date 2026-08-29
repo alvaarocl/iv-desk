@@ -1,5 +1,6 @@
 import React from 'react';
-import {useCurrentFrame, spring, useVideoConfig} from 'remotion';
+import {useCurrentFrame, useVideoConfig} from 'remotion';
+import {glide} from '../theme';
 
 export const CountUp: React.FC<{
   to: number;
@@ -10,16 +11,11 @@ export const CountUp: React.FC<{
   suffix?: string;
   decimals?: number;
   style?: React.CSSProperties;
-}> = ({to, from = 0, delay = 0, durationInFrames = 40, prefix = '', suffix = '', decimals = 0, style}) => {
+}> = ({to, from = 0, delay = 0, durationInFrames = 28, prefix = '', suffix = '', decimals = 0, style}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const s = spring({
-    frame: frame - delay,
-    fps,
-    durationInFrames,
-    config: {damping: 200},
-  });
-  const v = from + (to - from) * s;
+  const s = glide(frame, fps, delay, durationInFrames);
+  const v = from + (to - from) * Math.min(1, s);
   return (
     <span style={{fontVariantNumeric: 'tabular-nums', ...style}}>
       {prefix}

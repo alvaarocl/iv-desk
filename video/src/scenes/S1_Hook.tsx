@@ -1,20 +1,18 @@
 import React from 'react';
-import {AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate} from 'remotion';
+import {AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
 import {Grid} from '../components/Grid';
 import {JsonBlock} from '../components/JsonBlock';
-import {C, MONO, SANS} from '../theme';
+import {C, MONO, SANS, snap} from '../theme';
 import {TITLE, HOOK_SIGNAL} from '../data';
 
 export const S1_Hook: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
-  const titleIn = spring({frame, fps, config: {damping: 200}});
-  const titleOut = interpolate(frame, [110, 135], [1, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const jsonIn = interpolate(frame, [120, 140], [0, 1], {
+  const t = snap(frame, fps, 4);
+  const tagS = snap(frame, fps, 20);
+  // title lifts up and fades as the JSON rises
+  const handoff = interpolate(frame, [230, 270], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -22,22 +20,24 @@ export const S1_Hook: React.FC = () => {
   return (
     <AbsoluteFill style={{fontFamily: SANS}}>
       <Grid />
+
       <AbsoluteFill
         style={{
           justifyContent: 'center',
           alignItems: 'center',
-          opacity: titleOut,
-          transform: `scale(${interpolate(titleOut, [0, 1], [0.96, 1])})`,
+          opacity: 1 - handoff,
+          transform: `translateY(${handoff * -70}px)`,
         }}
       >
         <div
           style={{
             fontFamily: MONO,
             fontWeight: 600,
-            fontSize: 132,
+            fontSize: 134,
             letterSpacing: 6,
             color: C.ink,
-            opacity: titleIn,
+            opacity: Math.min(1, t),
+            transform: `translateY(${(1 - t) * 26}px)`,
           }}
         >
           {TITLE.name}
@@ -47,8 +47,9 @@ export const S1_Hook: React.FC = () => {
             fontFamily: SANS,
             fontSize: 34,
             color: C.accent,
-            marginTop: 10,
-            opacity: interpolate(frame, [14, 34], [0, 1], {extrapolateRight: 'clamp'}),
+            marginTop: 12,
+            opacity: Math.min(1, tagS),
+            transform: `translateY(${(1 - tagS) * 14}px)`,
           }}
         >
           {TITLE.tagline}
@@ -59,11 +60,11 @@ export const S1_Hook: React.FC = () => {
         style={{
           justifyContent: 'center',
           alignItems: 'center',
-          opacity: jsonIn,
-          transform: `translateY(${(1 - jsonIn) * 20}px)`,
+          opacity: handoff,
+          transform: `translateY(${(1 - handoff) * 50}px)`,
         }}
       >
-        <div style={{width: 900}}>
+        <div style={{width: 940}}>
           <div
             style={{
               fontFamily: MONO,
@@ -76,7 +77,7 @@ export const S1_Hook: React.FC = () => {
           >
             data/journal.jsonl
           </div>
-          <JsonBlock data={HOOK_SIGNAL} start={130} linesPerSecond={14} highlightKey="stand_down" />
+          <JsonBlock data={HOOK_SIGNAL} start={250} linesPerSecond={22} highlightKey="stand_down" />
         </div>
       </AbsoluteFill>
     </AbsoluteFill>

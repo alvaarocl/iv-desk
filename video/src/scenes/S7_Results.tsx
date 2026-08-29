@@ -1,8 +1,8 @@
 import React from 'react';
-import {useCurrentFrame, interpolate} from 'remotion';
+import {useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
 import {SceneFrame} from '../components/SceneFrame';
 import {CountUp} from '../components/CountUp';
-import {C, MONO, SANS} from '../theme';
+import {C, MONO, SANS, snap} from '../theme';
 import {RESULTS} from '../data';
 
 const Sparkline: React.FC<{points: number[]}> = ({points}) => {
@@ -13,7 +13,7 @@ const Sparkline: React.FC<{points: number[]}> = ({points}) => {
   const lo = Math.min(...points, 100000);
   const hi = Math.max(...points, 100000);
   const span = hi - lo || 1;
-  const grow = interpolate(frame, [10, 46], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
+  const grow = interpolate(frame, [12, 60], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
   const n = Math.max(2, Math.floor(points.length * grow));
   const d = points
     .slice(0, n)
@@ -26,9 +26,10 @@ const Sparkline: React.FC<{points: number[]}> = ({points}) => {
   );
 };
 
-export const S6_Results: React.FC = () => {
+export const S7_Results: React.FC = () => {
   const frame = useCurrentFrame();
-  const fadeLabel = interpolate(frame, [6, 22], [0, 1], {extrapolateRight: 'clamp'});
+  const {fps} = useVideoConfig();
+  const pillS = snap(frame, fps, 6);
 
   if (RESULTS.mode === 'backtest') {
     const b = RESULTS.backtest;
@@ -46,15 +47,17 @@ export const S6_Results: React.FC = () => {
               borderRadius: 999,
               padding: '6px 18px',
               display: 'inline-block',
-              opacity: fadeLabel,
+              opacity: Math.min(1, pillS),
+              transform: `translateY(${(1 - pillS) * -10}px)`,
             }}
           >
             backtest — not the competition window
           </div>
-          <div style={{fontFamily: MONO, fontWeight: 600, fontSize: 150, color: C.up, marginTop: 34}}>
-            <CountUp to={b.pnl} prefix="+$" delay={20} />
+          <div style={{fontFamily: MONO, fontWeight: 600, fontSize: 152, color: C.up, marginTop: 34}}>
+            <CountUp to={b.pnl} prefix="+$" delay={24} durationInFrames={26} />
           </div>
-          <div style={{fontFamily: SANS, fontSize: 30, color: C.muted, marginTop: 14}}>
+          <div style={{fontFamily: SANS, fontSize: 30, color: C.muted, marginTop: 14,
+            opacity: interpolate(frame, [40, 58], [0, 1], {extrapolateRight: 'clamp'})}}>
             held to expiry · {b.trades} trades · {b.sessions} real sessions · IV / RV median{' '}
             {b.ivrv_median.toFixed(2)}
           </div>
@@ -64,10 +67,14 @@ export const S6_Results: React.FC = () => {
               fontSize: 26,
               color: C.ink,
               marginTop: 40,
-              maxWidth: 900,
+              maxWidth: 940,
               marginLeft: 'auto',
               marginRight: 'auto',
-              opacity: interpolate(frame, [70, 90], [0, 1], {extrapolateRight: 'clamp'}),
+              opacity: interpolate(frame, [80, 100], [0, 1], {extrapolateRight: 'clamp'}),
+              transform: `translateY(${interpolate(frame, [80, 100], [12, 0], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              })}px)`,
             }}
           >
             Four sessions of live P&amp;L is a coin flip. An agent that documents every trade it
@@ -78,7 +85,6 @@ export const S6_Results: React.FC = () => {
     );
   }
 
-  // mode === 'live' — filled Thu 3 Sep
   const l = RESULTS.live;
   return (
     <SceneFrame kicker="Results · competition window · Mon–Thu" center>
@@ -88,12 +94,12 @@ export const S6_Results: React.FC = () => {
           style={{
             fontFamily: MONO,
             fontWeight: 600,
-            fontSize: 130,
+            fontSize: 132,
             color: l.pnl >= 0 ? C.up : C.down,
             marginTop: 20,
           }}
         >
-          <CountUp to={l.pnl} prefix={l.pnl >= 0 ? '+$' : '−$'} delay={20} />
+          <CountUp to={l.pnl} prefix={l.pnl >= 0 ? '+$' : '−$'} delay={24} />
         </div>
         <div style={{fontFamily: SANS, fontSize: 28, color: C.muted, marginTop: 12}}>
           {l.trades} trades · {l.winRate}% wins · {l.standDowns} documented stand-downs ·{' '}

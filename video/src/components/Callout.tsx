@@ -1,6 +1,6 @@
 import React from 'react';
-import {useCurrentFrame, spring, useVideoConfig} from 'remotion';
-import {C, MONO, SANS} from '../theme';
+import {useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
+import {C, MONO, SANS, snap, glide} from '../theme';
 
 export const Callout: React.FC<{
   big: React.ReactNode;
@@ -10,10 +10,25 @@ export const Callout: React.FC<{
 }> = ({big, label, delay = 0, color = C.accent}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const s = spring({frame: frame - delay, fps, config: {damping: 200}});
+  const s = glide(frame, fps, delay, 20);
+  const labelS = snap(frame, fps, delay + 12);
+  const punch = interpolate(frame - delay, [0, 8, 18], [0.86, 1.04, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   return (
-    <div style={{opacity: s, transform: `translateY(${(1 - s) * 16}px)`, textAlign: 'center'}}>
-      <div style={{fontFamily: MONO, fontWeight: 600, fontSize: 140, lineHeight: 1, color}}>
+    <div style={{textAlign: 'center'}}>
+      <div
+        style={{
+          fontFamily: MONO,
+          fontWeight: 600,
+          fontSize: 150,
+          lineHeight: 1,
+          color,
+          opacity: Math.min(1, s),
+          transform: `scale(${punch})`,
+        }}
+      >
         {big}
       </div>
       <div
@@ -22,9 +37,11 @@ export const Callout: React.FC<{
           fontSize: 26,
           color: C.muted,
           marginTop: 18,
-          maxWidth: 780,
+          maxWidth: 820,
           marginLeft: 'auto',
           marginRight: 'auto',
+          opacity: Math.min(1, labelS),
+          transform: `translateY(${(1 - labelS) * 10}px)`,
         }}
       >
         {label}

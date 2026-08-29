@@ -14,7 +14,7 @@ export const JsonBlock: React.FC<{
   const frame = useCurrentFrame();
   const text = JSON.stringify(data, null, 2);
   const lines = text.split('\n');
-  const shown = Math.max(0, Math.floor(((frame - start) / 30) * linesPerSecond));
+  const shown = Math.max(0, Math.floor(((frame - start) / 60) * linesPerSecond));
 
   return (
     <pre
@@ -38,10 +38,16 @@ export const JsonBlock: React.FC<{
             style={{
               background: isHl ? `${C.accent}1f` : 'transparent',
               borderRadius: 4,
-              opacity: interpolate(frame - start - (i * 30) / linesPerSecond, [0, 6], [0, 1], {
+              opacity: interpolate(frame - start - (i * 60) / linesPerSecond, [0, 8], [0, 1], {
                 extrapolateLeft: 'clamp',
                 extrapolateRight: 'clamp',
               }),
+              transform: `translateX(${interpolate(
+                frame - start - (i * 60) / linesPerSecond,
+                [0, 10],
+                [10, 0],
+                {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'},
+              )}px)`,
             }}
           >
             {colorize(ln)}

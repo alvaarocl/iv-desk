@@ -1,7 +1,7 @@
 import React from 'react';
-import {useCurrentFrame, spring, useVideoConfig, interpolate} from 'remotion';
+import {useCurrentFrame, useVideoConfig, interpolate} from 'remotion';
 import {SceneFrame} from '../components/SceneFrame';
-import {C, MONO, SANS} from '../theme';
+import {C, MONO, SANS, snap} from '../theme';
 import {DEBATE} from '../data';
 
 const Seat: React.FC<{title: string; body: React.ReactNode; delay: number}> = ({
@@ -11,7 +11,7 @@ const Seat: React.FC<{title: string; body: React.ReactNode; delay: number}> = ({
 }) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const s = spring({frame: frame - delay, fps, config: {damping: 200}});
+  const s = snap(frame, fps, delay);
   return (
     <div
       style={{
@@ -19,8 +19,8 @@ const Seat: React.FC<{title: string; body: React.ReactNode; delay: number}> = ({
         border: `1px solid ${C.line}`,
         borderRadius: 14,
         padding: '22px 26px',
-        opacity: s,
-        transform: `translateY(${(1 - s) * 18}px)`,
+        opacity: Math.min(1, s),
+        transform: `translateY(${(1 - s) * 24}px) scale(${interpolate(Math.min(1, s), [0, 1], [0.97, 1])})`,
       }}
     >
       <div style={{fontFamily: MONO, fontSize: 22, letterSpacing: 2, textTransform: 'uppercase', color: C.muted}}>
@@ -33,12 +33,14 @@ const Seat: React.FC<{title: string; body: React.ReactNode; delay: number}> = ({
 
 export const S3_Desk: React.FC = () => {
   const frame = useCurrentFrame();
+  const {fps} = useVideoConfig();
+  const headS = snap(frame, fps, 90);
   return (
     <SceneFrame kicker="The desk · four seats · open models on Featherless">
       <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20}}>
         <Seat
           title="Quant ensemble"
-          delay={20}
+          delay={16}
           body={
             <>
               {DEBATE.quant.map((q) => q.model).join(' · ')}
@@ -48,7 +50,7 @@ export const S3_Desk: React.FC = () => {
         />
         <Seat
           title="Bull / Bear"
-          delay={40}
+          delay={34}
           body={
             <>
               must cite real <span style={{color: C.accent}}>Signal</span> fields
@@ -66,8 +68,8 @@ export const S3_Desk: React.FC = () => {
           border: `1px solid ${C.accent}55`,
           borderRadius: 14,
           padding: '24px 28px',
-          marginTop: 4,
-          opacity: spring({frame: frame - 64, fps: 30, config: {damping: 200}}),
+          opacity: Math.min(1, headS),
+          transform: `translateY(${(1 - headS) * 22}px)`,
         }}
       >
         <div style={{fontFamily: MONO, fontSize: 22, letterSpacing: 2, textTransform: 'uppercase', color: C.muted}}>
@@ -90,8 +92,11 @@ export const S3_Desk: React.FC = () => {
           background: C.surface2,
           borderRadius: 10,
           padding: '16px 22px',
-          marginTop: 8,
-          opacity: interpolate(frame, [110, 128], [0, 1], {extrapolateRight: 'clamp'}),
+          opacity: interpolate(frame, [150, 168], [0, 1], {extrapolateRight: 'clamp'}),
+          transform: `translateX(${interpolate(frame, [150, 172], [24, 0], {
+            extrapolateLeft: 'clamp',
+            extrapolateRight: 'clamp',
+          })}px)`,
         }}
       >
         <span style={{color: C.muted}}># the LLM cannot widen risk — by construction</span>
