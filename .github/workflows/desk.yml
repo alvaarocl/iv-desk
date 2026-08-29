@@ -32,9 +32,15 @@ jobs:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
       ALPACA_ACCOUNT_ID: ${{ vars.ALPACA_ACCOUNT_ID }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # LLM desk — Featherless only (Anthropic dropped: no out-of-pocket spend).
       FEATHERLESS_API_KEY: ${{ secrets.FEATHERLESS_API_KEY }}
       FEATHERLESS_MODELS: ${{ vars.FEATHERLESS_MODELS }}
+      FEATHERLESS_BASE_URL: ${{ vars.FEATHERLESS_BASE_URL }}
+      DESK_DEBATE_MODELS: ${{ vars.DESK_DEBATE_MODELS }}
+      # `off` bypasses the seats and passes the deterministic decision through — the escape hatch
+      # if Featherless is down mid-session. Set via repo variable, no YAML edit needed.
+      DESK_DEBATE: ${{ vars.DESK_DEBATE || 'required' }}
+      DESK_DEBATE_BUDGET_S: ${{ vars.DESK_DEBATE_BUDGET_S || '90' }}
       # workflow_dispatch input wins; otherwise repo var; otherwise the safe default.
       DESK_MODE: ${{ github.event.inputs.mode || vars.DESK_MODE || 'dry_run' }}
       ALPACA_CLI_BIN: alpaca
