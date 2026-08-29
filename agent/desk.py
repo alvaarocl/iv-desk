@@ -149,7 +149,7 @@ def run_once() -> None:
         acct = _guard_account(order_mode, now)
         append({"ts": stamp, "event": "account", "account": acct.get("account_number"),
                 "mode": mode, "equity": acct.get("equity")})
-    except Exception as exc:  # noqa: BLE001 - journal the reason, then re-raise
+    except Exception as exc:
         append({"ts": stamp, "event": "fatal", "stage": "account_guard", "error": str(exc)})
         raise
 
