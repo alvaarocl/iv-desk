@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -108,14 +108,14 @@
 <div class="wrap">
   <header>
     <div class="brand">
-      <p class="eyebrow">Alpaca AI Trading Agents Hackathon · cuenta PA39HSCQE8S3</p>
+      <p class="eyebrow">Alpaca AI Trading Agents Hackathon · account PA39HSCQE8S3</p>
       <h1>IV Desk — Trading Floor</h1>
     </div>
-    <div class="status" id="status"><span class="dot"></span>cargando…</div>
+    <div class="status" id="status"><span class="dot"></span>loading…</div>
   </header>
 
   <section id="pnl-sec">
-    <h2 class="sec-head">Cuenta</h2>
+    <h2 class="sec-head">Account</h2>
     <div class="tiles" id="tiles"></div>
     <div class="chartcard" id="chartcard" hidden>
       <svg class="spark" id="spark" viewBox="0 0 600 160" preserveAspectRatio="none" aria-hidden="true"></svg>
@@ -123,29 +123,29 @@
   </section>
 
   <section>
-    <h2 class="sec-head">La mesa — últimas decisiones</h2>
-    <div id="debates"><div class="empty">Sin debates todavía. El primero llega con la primera señal que pase los gates.</div></div>
+    <h2 class="sec-head">The desk — latest calls</h2>
+    <div id="debates"><div class="empty">No debates yet. The first one lands with the first signal that clears the gates.</div></div>
   </section>
 
   <section>
-    <h2 class="sec-head">Libro abierto</h2>
-    <div id="book"><div class="empty">Sin posiciones abiertas.</div></div>
+    <h2 class="sec-head">Open book</h2>
+    <div id="book"><div class="empty">No open positions.</div></div>
   </section>
 
   <section>
-    <h2 class="sec-head">Ledger de predicciones</h2>
-    <div id="ledger"><div class="empty">Ninguna tesis calificada todavía. Se califican al cerrar la posición.</div></div>
+    <h2 class="sec-head">Prediction ledger</h2>
+    <div id="ledger"><div class="empty">No thesis graded yet — each is graded when its position closes.</div></div>
   </section>
 
   <footer id="foot">
-    Se refresca solo cada 60&nbsp;s. Lee <code>data/equity.csv</code> y <code>data/journal.jsonl</code>,
-    que el loop commitea cada 15&nbsp;min. Audit trail completo y falsable.
+    Auto-refreshes every 60&nbsp;s. Reads <code>data/equity.csv</code> and <code>data/journal.jsonl</code>,
+    committed by the loop every 15&nbsp;min. A complete, falsifiable audit trail.
   </footer>
 </div>
 
 <script>
-const NUM = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
-const NUM2 = new Intl.NumberFormat("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const NUM = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const NUM2 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const START_EQUITY = 100000;
 
 const $ = (id) => document.getElementById(id);
@@ -201,16 +201,16 @@ function renderTiles(equity, journal) {
     if (sub) t.append(el("div", "sub", sub));
     tiles.append(t);
   };
-  mk("Equity", "$" + NUM.format(nav), last ? "actualizado " + shortTime(last.ts) : "aún no operado", "");
+  mk("Equity", "$" + NUM.format(nav), last ? "updated " + shortTime(last.ts) : "not traded yet", "");
   mk("P&L", sign + "$" + NUM.format(Math.abs(pnl)), (pnl >= 0 ? "+" : "") + pct.toFixed(2) + "%", dir);
-  mk("Posiciones abiertas", String(Math.max(openBook, 0)), opens.length + " abiertas · " + exits.length + " cerradas", "");
-  mk("Decisiones de la mesa", String(debates.length), standDowns + " stand-downs razonados", "");
+  mk("Open positions", String(Math.max(openBook, 0)), opens.length + " opened · " + exits.length + " closed", "");
+  mk("Desk decisions", String(debates.length), standDowns + " reasoned stand-downs", "");
 }
 
 function shortTime(iso) {
   const d = new Date(iso);
   if (isNaN(d)) return "";
-  return d.toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString("en-US", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 function renderSpark(equity) {
@@ -238,9 +238,9 @@ function renderSpark(equity) {
 function seatChip(t) {
   if (t.seat === "quant_ensemble") return `Quant: <b>${esc(t.verdict || "?")}</b>`;
   if (t.seat === "quant") return `Quant·${esc(t.model || "")}: <b>${esc(t.vote || "?")}</b>`;
-  if (t.seat === "bull" || t.seat === "bear") return `${t.seat === "bull" ? "Alcista" : "Bajista"}: <b>${t.ok ? "arg." : "descartado"}</b>`;
-  if (t.seat === "desk_head") return `Jefe de mesa: <b>${esc((t.decision && (t.decision.contracts ?? t.decision.action)) ?? (t.ok ? "ok" : "veto"))}</b>`;
-  if (t.seat === "system") return esc(t.note || t.error || "sistema");
+  if (t.seat === "bull" || t.seat === "bear") return `${t.seat === "bull" ? "Bull" : "Bear"}: <b>${t.ok ? "arg." : "discarded"}</b>`;
+  if (t.seat === "desk_head") return `Desk Head: <b>${esc((t.decision && (t.decision.contracts ?? t.decision.action)) ?? (t.ok ? "ok" : "veto"))}</b>`;
+  if (t.seat === "system") return esc(t.note || t.error || "system");
   return esc(t.seat || "?");
 }
 
@@ -253,14 +253,14 @@ function renderDebates(journal) {
     const c = el("div", "debate");
     const top = el("div", "top");
     top.append(el("span", "sym", (d.underlying || "?") + (d.contracts ? " · " + d.contracts + "×" : "")));
-    const v = el("span", "verdict " + (d.approved ? "v-open" : "v-stand"), d.approved ? "abre" : "stand down");
+    const v = el("span", "verdict " + (d.approved ? "v-open" : "v-stand"), d.approved ? "open" : "stand down");
     top.append(v);
     c.append(top);
     if (d.thesis) c.append(el("p", "thesis", d.thesis));
     if (d.prediction && (d.prediction.low != null || d.prediction.date)) {
-      c.append(el("div", "pred", `predicción: ${d.underlying || ""} en [${d.prediction.low ?? "?"}, ${d.prediction.high ?? "?"}] el ${d.prediction.date ?? "?"}`));
+      c.append(el("div", "pred", `prediction: ${d.underlying || ""} in [${d.prediction.low ?? "?"}, ${d.prediction.high ?? "?"}] on ${d.prediction.date ?? "?"}`));
     } else if (!d.approved && d.reason) {
-      c.append(el("div", "pred", "motivo: " + d.reason));
+      c.append(el("div", "pred", "reason: " + d.reason));
     }
     const seats = el("div", "seats");
     for (const t of (d.transcript || [])) {
@@ -282,7 +282,7 @@ function renderBook(journal) {
   box.innerHTML = "";
   const w = el("div", "tablewrap");
   const tb = el("table");
-  tb.innerHTML = `<thead><tr><th>Subyacente</th><th>Estructura</th><th class="mono">Strikes</th><th class="mono">Crédito</th><th class="mono">Max loss</th><th>Abierta</th></tr></thead>`;
+  tb.innerHTML = `<thead><tr><th>Underlying</th><th>Structure</th><th class="mono">Strikes</th><th class="mono">Credit</th><th class="mono">Max loss</th><th>Opened</th></tr></thead>`;
   const body = el("tbody");
   for (const t of open) {
     const strikes = t.strikes ? Object.values(t.strikes).join(" / ") : "—";
@@ -305,19 +305,19 @@ function renderLedger(journal) {
   const w = el("div", "tablewrap");
   const tb = el("table");
   if (graded.length) {
-    tb.innerHTML = `<thead><tr><th>Trade</th><th>Tesis</th><th>Resultado</th><th class="mono">P&L</th></tr></thead>`;
+    tb.innerHTML = `<thead><tr><th>Trade</th><th>Thesis</th><th>Outcome</th><th class="mono">P&L</th></tr></thead>`;
     const body = el("tbody");
     for (const g of graded) {
       const ok = g.correct === true || g.outcome === "correct";
       const tr = el("tr");
       tr.innerHTML = `<td class="mono">${esc(g.trade_id || "")}</td><td>${esc(g.thesis || g.reason || "")}</td>` +
-        `<td class="${ok ? "tick" : "cross"}">${ok ? "✓ acertada" : "✗ fallada"}</td>` +
+        `<td class="${ok ? "tick" : "cross"}">${ok ? "✓ correct" : "✗ wrong"}</td>` +
         `<td class="mono">${g.pnl != null ? "$" + NUM2.format(g.pnl) : "—"}</td>`;
       body.append(tr);
     }
     tb.append(body);
   } else {
-    tb.innerHTML = `<thead><tr><th>Trade</th><th>Salida</th><th class="mono">P&L</th></tr></thead>`;
+    tb.innerHTML = `<thead><tr><th>Trade</th><th>Exit</th><th class="mono">P&L</th></tr></thead>`;
     const body = el("tbody");
     for (const x of exits) {
       const tr = el("tr");
@@ -333,10 +333,10 @@ function renderLedger(journal) {
 
 function freshness(equity, journal) {
   const stamps = [equity.at(-1)?.ts, journal.at(-1)?.logged_at].filter(Boolean).map((s) => new Date(s).getTime()).filter(Number.isFinite);
-  if (!stamps.length) return setStatus("", "sin datos · el loop aún no ha corrido");
+  if (!stamps.length) return setStatus("", "no data · the loop hasn't run yet");
   const ageMin = Math.max(0, (Date.now() - Math.max(...stamps)) / 60000);
-  if (ageMin < 25) setStatus("live", "en vivo · último loop hace " + Math.round(ageMin) + " min");
-  else setStatus("stale", "sin actualizar hace " + Math.round(ageMin) + " min");
+  if (ageMin < 25) setStatus("live", "live · last loop " + Math.round(ageMin) + " min ago");
+  else setStatus("stale", "stale · " + Math.round(ageMin) + " min ago");
 }
 
 async function load() {
@@ -353,7 +353,7 @@ async function load() {
 
   if (!equity.length && !journal.length) {
     $("foot").classList.add("err");
-    $("foot").textContent = "Aún no hay datos — el desk empieza a operar el lunes 31 a las 15:30 CEST. (Si el repo es privado, el dashboard debe servirse desde GitHub Pages, no abrirse como fichero.)";
+    $("foot").textContent = "No data yet — the desk starts trading Mon 31 Aug, 09:30 ET. (If the repo is private, serve this from GitHub Pages, don't open it as a file.)";
   }
 }
 
