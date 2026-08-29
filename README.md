@@ -15,6 +15,8 @@ It does not trade price. It trades the **volatility risk premium**, gated by **d
 | [`docs/STATUS.md`](docs/STATUS.md) | What works now, what's left, decisions locked vs open. |
 | [`docs/AUDITORIA.md`](docs/AUDITORIA.md) | **Technical audit (29 Aug)** — every known defect with file:line, by severity. Keep in sync with the code. |
 | [`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md) | Verified contest rules, judging criteria, deadlines, and where our docs drifted. |
+| [`docs/CALENDARIO.md`](docs/CALENDARIO.md) | **Every deadline in one place**, in local time (CEST) *and* market time (ET) — P&L window, the four sessions, critical intraday moments, macro blackouts. |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | **Live-session runbook** — Monday startup checklist, what to watch on every loop, kill switch, incident decision tree, incident log. |
 | [`docs/VIABILIDAD.md`](docs/VIABILIDAD.md) | Is the idea actually viable? Positioning for the judges, risk posture, priorities. |
 | [`docs/API-ALPACA.md`](docs/API-ALPACA.md) | Hard-won Alpaca API / CLI / feed conventions. **Read before touching order code.** |
 | [`docs/strategy-spec.md`](docs/strategy-spec.md) | The precise strategy — signal maths, strike selection, every risk gate. |

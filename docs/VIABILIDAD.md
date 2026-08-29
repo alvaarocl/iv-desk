@@ -51,7 +51,7 @@ Y hacen falta **algunos** trades igualmente. Presentarse el viernes con 0 operac
 
 ## La incoherencia de riesgo que hay que resolver
 
-`CONCEPT.md` dice del eje de P&L: *"Cedemos este."* Pero la configuración actual **cede el upside y conserva todo el downside**:
+`CONCEPT.md` **decía** del eje de P&L *"Cedemos este"* (corregido el 29 ago). Pero la configuración actual **cede el upside y conserva todo el downside**:
 
 - 0.5% de $100k = $500/trade → **1 contrato** → ~$120 de crédito.
 - Con 3 posiciones en 4 sesiones, el mejor escenario posible es **~0.3% de retorno**. Indistinguible de cero.

@@ -6,8 +6,20 @@
 
 ## Reglas oficiales (guidelines de Alpaca, recibidas 29 ago)
 
-- **Ventana de scoring de P&L:** lunes **31 ago 9:30 ET → snapshot de equity a cierre del jueves 3 sep**.
-  Cuentan 4 sesiones: lun 31, mar 1, mié 2, jue 3. **El viernes 4 NO cuenta para P&L.**
+Datos del concurso verificados en [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md). Todas las fechas con
+hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
+
+- **Criterios de jurado: CUATRO** — P&L Performance · Technology Implementation · Creativity &
+  Originality · Presentation & Execution (~25% cada uno). **Social Engagement es un premio aparte**,
+  no un eje del rubro → el P&L pesa **~25%, no ~20%**.
+- **Premio: $5.000** (1º $2.500 · 2º $1.500 · 3º $1.000). Algunas fuentes dicen $6.000 contando dos
+  premios sociales de $500. **No usar la cifra de $6.300 que arrastraba `CLAUDE.md`.**
+- **Ventana de scoring de P&L:** lunes **31 ago 9:30 ET (15:30 CEST) → snapshot de equity a cierre del
+  jueves 3 sep (22:00 CEST)**. Cuentan 4 sesiones: lun 31, mar 1, mié 2, jue 3.
+  **El viernes 4 NO cuenta para P&L.**
+  > ⚠️ **PENDIENTE: confirmar en Discord.** Esto viene de las guidelines privadas y **no es
+  > verificable públicamente**. Toda la política de expiraciones (≤ 3 sep) depende de ello.
+  > No cambiarlo sin confirmar. → issue #19
 - Se juzga por **equity total de la cuenta** (no caja) + creatividad, autonomía y robustez del workflow.
   No hay Sharpe/Sortino/drawdown como métrica, solo equity. Sin scoreboard en vivo.
 - **La UI NO es obligatoria.** *"We are primarily evaluating the autonomous agent workflow and its
@@ -66,7 +78,8 @@ entrega.
 | Disclosure de trabajo pre-evento en el README | C | Alta — requisito |
 | Reflexión nocturna (post-mortem + ajuste de parámetros) | A | Baja — lista de recortes |
 | Dashboard "trading floor" (Next.js / Vercel) | B | **Opcional** — UI no obligatoria; solo si sobra tiempo |
-| One-page write-up (`write-up.md`) | C | Alta — entregable obligatorio |
+| One-page write-up (`write-up.md`) — **se escribe desde el código, no desde el plan** (#18) | C | Alta — entregable obligatorio |
+| Runbook y calendario operativos (`RUNBOOK.md`, `CALENDARIO.md`) | C | ✅ hechos — leerlos los dos antes del lunes |
 | Vídeo demo + slide deck + cover image | C | Alta — entregables obligatorios |
 | Posts de redes (build in public), hasta 5 | C | Media — premio aparte |
 
@@ -108,6 +121,8 @@ Fijadas por los probes de Día 0 (`../probes/RESULTS.md`). No revisar sin motivo
 | Cuenta de **competición** | "PAPER UC3M" `PA39HSCQE8S3` — $100.000, nivel 3, intacta. **Primera orden: lun 31 ago 9:30 ET. No tocar antes.** Sus API keys van solo en los secrets de GitHub. |
 | Repo | github.com/alvaarocl/iv-desk — **privado hasta el 4 sep**, luego público (obligatorio) |
 | Cupón Featherless | `ALPACA26` — $25, redimir en featherless.ai |
-| Ventana de P&L | **lun 31 ago 9:30 ET → snapshot equity cierre jue 3 sep** (4 sesiones: 31, 1, 2, 3) |
-| Fin de submissions (lablab) | **4 sep 2026, 17:00 CEST** |
+| Ventana de P&L | **lun 31 ago 9:30 ET / 15:30 CEST → snapshot equity cierre jue 3 sep 16:00 ET / 22:00 CEST** (4 sesiones: 31, 1, 2, 3) — ⚠️ pendiente de confirmar en Discord (#19) |
+| Fin de submissions (lablab) | **4 sep 2026, 15:00 UTC = 17:00 CEST = 11:00 ET** |
 | Expiraciones de competición | ≤ 3 sep |
+| Premio | **$5.000** (1º $2.500 · 2º $1.500 · 3º $1.000) |
+| Criterios de jurado | **4**, ~25% cada uno. Social Engagement es premio aparte |

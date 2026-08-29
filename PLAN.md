@@ -2,18 +2,30 @@
 
 Revised 29 Aug after Alpaca's official guidelines (see `docs/STATUS.md` → "Official rules").
 
+**Todas las fechas, con hora CEST y ET, en [`docs/CALENDARIO.md`](docs/CALENDARIO.md).** Qué hacer
+durante las sesiones en vivo: [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
+
 ## Hard dates
 
-| What | When |
-|---|---|
-| **P&L scoring window** | **Mon 31 Aug 09:30 ET → equity snapshot EOD Thu 3 Sep** |
-| Trading days that count | **Mon 31 Aug · Tue 1 · Wed 2 · Thu 3 Sep** — 4 sessions |
-| Fri 4 Sep | Does **not** count for P&L. NFP that morning is irrelevant to scoring. |
-| lablab submission deadline | **Fri 4 Sep 17:00 CEST** |
-| Agent must start trading | From the **fresh competition account**, Mon 31 Aug 09:30 ET. Nothing before counts. |
+| What | When (ET) | Hora local (CEST) |
+|---|---|---|
+| **P&L scoring window** | **Mon 31 Aug 09:30 ET → equity snapshot EOD Thu 3 Sep** | 31 ago 15:30 → 3 sep 22:00 |
+| Trading days that count | **Mon 31 Aug · Tue 1 · Wed 2 · Thu 3 Sep** — 4 sessions | 15:30–22:00 cada día |
+| Fri 4 Sep | Does **not** count for P&L. NFP that morning is irrelevant to scoring. | — |
+| lablab submission deadline | **Fri 4 Sep 11:00 ET** (15:00 UTC) | **17:00 CEST** |
+| Agent must start trading | From the **fresh competition account**, Mon 31 Aug 09:30 ET. Nothing before counts. | 15:30 CEST |
+
+> ⚠️ La ventana de P&L viene de las **guidelines privadas** del 29 ago y **no es verificable
+> públicamente**. **Pendiente de confirmar en Discord** — toda la política de expiraciones (≤ 3 sep)
+> depende de ella. No cambiarla sin confirmar. → issue #19
 
 Judged on **total account equity** at the Thursday snapshot (not cash) + creativity, autonomy and
 robustness of the agent workflow. **UI is explicitly not required.**
+
+**Judging criteria: four, not five** — P&L Performance · Technology Implementation · Creativity &
+Originality · Presentation & Execution (~25% each). Social Engagement is a **separate prize**.
+Prize pool **$5,000** (1st $2,500 / 2nd $1,500 / 3rd $1,000). See
+[`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md).
 
 ## Consequences
 
@@ -55,11 +67,14 @@ Team of 2. Lanes: **(A) agent · (B) dashboard (optional) · (C) content/write-u
 - [ ] **B:** (if ahead) dashboard skeleton on Vercel reading `data/`.
 - [ ] **C:** finish write-up draft, slide outline. Social post #2 (architecture).
 
-## Mon 31 Aug → 09:30 ET — GO LIVE (P&L day 1)
+## Mon 31 Aug → 09:30 ET / 15:30 CEST — GO LIVE (P&L day 1)
 
-- [ ] 09:00 ET: flip workflow `DESK_MODE=live`, competition account. Confirm fresh $100k, zero history.
+- [ ] 09:00 ET (**15:00 CEST**): run the startup checklist in [`docs/RUNBOOK.md`](docs/RUNBOOK.md) —
+      flip workflow `DESK_MODE=live`, competition account, confirm fresh $100k and zero history,
+      confirm the secrets are `PA39HSCQE8S3`'s and not the testing account's.
 - [ ] Conservative sizing: 0.5% NAV risk/trade, max 3 positions. Expirations Sep 1–3.
-- [ ] Watch **every** 15-min invocation. Keep an incident log. Fix fast.
+- [ ] Watch **every** 15-min invocation. Log every incident in `docs/RUNBOOK.md` → *Log de
+      incidentes* (it is write-up material on the robustness axis). Fix fast.
 - [ ] **C:** social post #3 — "we're live", first fills.
 
 ## Tue 1 Sep — P&L day 2
@@ -77,7 +92,7 @@ Team of 2. Lanes: **(A) agent · (B) dashboard (optional) · (C) content/write-u
 
 - [ ] Morning: no new positions that can't resolve or be safely marked by EOD.
 - [ ] Through the day: let Sep-3 positions expire; close anything that would carry ugly risk into the snapshot.
-- [ ] ~15:45 ET: desk closes remaining open risk. Aim for a clean, well-marked book at EOD.
+- [ ] ~15:45 ET (**21:45 CEST**): desk closes remaining open risk. Aim for a clean, well-marked book at EOD.
 - [ ] **After close:** screenshot equity, positions, activity log. Lock the P&L number.
 - [ ] **C:** finish demo video, deck, cover image.
 
@@ -86,7 +101,7 @@ Team of 2. Lanes: **(A) agent · (B) dashboard (optional) · (C) content/write-u
 - [ ] Finalize submission: title, descriptions, tags, cover, video, deck, **public GitHub repo**,
       **competition account ID**, up to 5 social links, one-page write-up.
 - [ ] Flip repo to public. Confirm MIT license + pre-event disclosure present.
-- [ ] **Submit before 17:00 CEST.**
+- [ ] **Submit before 17:00 CEST** (15:00 UTC / 11:00 ET).
 - [ ] Final social post — results + repo.
 
 ---

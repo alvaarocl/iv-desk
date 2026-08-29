@@ -130,8 +130,8 @@ Y el gate de liquidez que exige `strategy-spec.md` (`OI > 500`, spread `< 10%` d
 
 Los `schedule:` de GitHub Actions son **best-effort**. Si no corre el run de las 15:45 ET, una posición en expiración se va a expiración con riesgo de pin y asignación. No hay kill switch documentado ni forma trivial de ver la última ejecución. **La robustez del workflow es un eje explícito del jurado** y ahora mismo no tenemos respuesta a la pregunta obvia.
 
-### 22. No existe runbook para las sesiones en vivo
-issue #24
+### 22. ~~No existe runbook para las sesiones en vivo~~ ✅ RESUELTO (29 ago)
+issue #24 · **`docs/RUNBOOK.md` creado**
 
 `PLAN.md` dice *"Watch every 15-min invocation"* pero no hay documento que diga qué mirar ni qué hacer cuando algo falla. La ventana empieza el lunes a las **15:30 CEST** — eso se escribe antes, no se improvisa.
 
@@ -171,15 +171,15 @@ El propio docstring lo pide. Ya verificado por nuestra parte: **el lun 31 ago es
 
 ## Deliverables con problemas
 
-### 19. `write-up.md` afirma cosas que no existen
-`docs/write-up.md` · issue #18
+### 19. ~~`write-up.md` afirma cosas que no existen~~ ✅ RESUELTO (29 ago)
+`docs/write-up.md` · issue #18 · **reescrito desde el código, con placeholders `[[EN CONSTRUCCIÓN]]` para lo que aún no existe**
 
 Redactado en presente, promete *"scheduled Alpaca CLI loop"* (es REST), *"MCP server"* (no existe) y el ensemble Featherless (no existe). Los jueces son **de Alpaca** y van a buscar exactamente esas integraciones. No es exageración de marketing: hunde el eje de Technology Implementation.
 
 **Regla:** el write-up se escribe **desde el código**, no desde el plan.
 
-### 20. Datos del hackathon incorrectos en los docs
-issue #19 · ver [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md)
+### 20. ~~Datos del hackathon incorrectos en los docs~~ ✅ RESUELTO (29 ago)
+issue #19 · ver [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md) · **premio y criterios corregidos; queda confirmar la ventana en Discord**
 
 Premio ($6.300 → $5.000), criterios de jurado (son 4, no 5), y confirmar la ventana de P&L en Discord.
 
