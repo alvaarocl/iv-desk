@@ -1,1 +1,3 @@
 {"ts": "2026-08-29T14:15:44.694738-04:00", "event": "fatal", "stage": "account_guard", "error": "TOO EARLY \u2014 'PA39HSCQE8S3' is the competition account and the P&L window opens 2026-08-31 09:30 EDT. Refusing to touch it.", "logged_at": "2026-08-29T18:15:44.927654+00:00"}
+{"ts": "2026-08-29T14:18:40.090666-04:00", "event": "account", "account": "PA39HSCQE8S3", "mode": "dry_run", "equity": "100000", "logged_at": "2026-08-29T18:18:40.609908+00:00"}
+{"ts": "2026-08-29T14:18:40.090666-04:00", "event": "market_closed", "logged_at": "2026-08-29T18:18:40.853360+00:00"}
