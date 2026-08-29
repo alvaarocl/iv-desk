@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IV Desk — Estado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #f3f1ec; --surface: #fbfaf7; --surface-2: #ece9e1;
+    --ink: #22262c; --muted: #666c76; --line: #ddd8cc;
+    --accent: #b07d24; --accent-soft: #f0e4c9;
+    --done: #3f9459; --wip: #bd7a26; --todo: #8b909a; --blocked: #bd5647;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #13161b; --surface: #1b1f26; --surface-2: #232830;
+      --ink: #e9e7e1; --muted: #969ca6; --line: #2c323c;
+      --accent: #e0a83d; --accent-soft: #33291320;
+      --done: #5fb87a; --wip: #dc9038; --todo: #667085; --blocked: #cf6b5c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #13161b; --surface: #1b1f26; --surface-2: #232830;
+    --ink: #e9e7e1; --muted: #969ca6; --line: #2c323c;
+    --accent: #e0a83d; --accent-soft: #33291320;
+    --done: #5fb87a; --wip: #dc9038; --todo: #667085; --blocked: #cf6b5c;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sans);
+    line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 40px 24px 100px; }
+
+  .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -0.01em; margin: 8px 0 6px; text-wrap: balance; }
+  h2 { font-family: var(--mono); font-weight: 600; font-size: 15px; letter-spacing: 0.02em;
+    margin: 0; color: var(--ink); }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0; }
+
+  header { border-bottom: 1px solid var(--line); padding-bottom: 28px; margin-bottom: 8px; }
+  .datestrip { font-family: var(--mono); font-size: 12px; color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 16px; }
+  .datestrip b { color: var(--accent); font-weight: 600; }
+
+  section { margin-top: 48px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .sec-head .n { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+  /* readiness bars */
+  .axes { display: grid; gap: 14px; }
+  .axis { display: grid; grid-template-columns: 190px 1fr auto; gap: 16px; align-items: center; }
+  .axis .name { font-family: var(--mono); font-size: 13px; }
+  .axis .track { height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .axis .fill { height: 100%; border-radius: 99px; background: var(--accent); }
+  .axis .pct { font-family: var(--mono); font-size: 12px; color: var(--muted); min-width: 62px;
+    text-align: right; }
+  @media (max-width: 620px) {
+    .axis { grid-template-columns: 1fr auto; }
+    .axis .track { grid-column: 1 / -1; order: 3; }
+  }
+
+  /* pipeline */
+  .pipe { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+  .node { flex: 1 1 150px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 14px; position: relative; }
+  .node .k { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); }
+  .node .v { font-weight: 600; margin: 4px 0 2px; }
+  .node .d { font-size: 12.5px; color: var(--muted); }
+  .node .tag { position: absolute; top: 12px; right: 12px; width: 8px; height: 8px;
+    border-radius: 99px; }
+  .arrow { align-self: center; color: var(--line); font-family: var(--mono); }
+  @media (max-width: 720px) { .arrow { display: none; } }
+
+  /* module matrix */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
+  tr:last-child td { border-bottom: none; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface); }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono);
+    font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 99px; white-space: nowrap; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+  .p-done { color: var(--done); background: color-mix(in srgb, var(--done) 14%, transparent); }
+  .p-wip { color: var(--wip); background: color-mix(in srgb, var(--wip) 14%, transparent); }
+  .p-todo { color: var(--todo); background: color-mix(in srgb, var(--todo) 16%, transparent); }
+  .p-blocked { color: var(--blocked); background: color-mix(in srgb, var(--blocked) 14%, transparent); }
+
+  /* build cards */
+  .cards { display: grid; gap: 18px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px; }
+  .card.optional { border-style: dashed; }
+  .card h3 { font-family: var(--mono); font-size: 16px; margin: 0 0 2px; display: flex;
+    align-items: center; gap: 10px; flex-wrap: wrap; }
+  .card .sub { font-size: 12.5px; color: var(--muted); font-family: var(--mono); margin-bottom: 14px; }
+  .card p { margin: 10px 0; }
+  .card .lbl { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted); display: block; margin: 16px 0 5px; }
+  pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.55; margin: 6px 0 0; }
+  pre .c { color: var(--muted); }
+  .card ol, .card ul { margin: 6px 0; padding-left: 20px; }
+  .card li { margin: 5px 0; }
+  .est { font-family: var(--mono); font-size: 12px; color: var(--accent);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line));
+    border-radius: 99px; padding: 2px 10px; }
+
+  /* timeline */
+  .tl { display: grid; gap: 0; }
+  .tl-row { display: grid; grid-template-columns: 130px 1fr; gap: 20px; padding: 16px 0;
+    border-bottom: 1px solid var(--line); }
+  .tl-row:last-child { border-bottom: none; }
+  .tl-when { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+  .tl-when span { display: block; font-weight: 400; font-size: 11px; color: var(--muted);
+    margin-top: 2px; }
+  .tl-what ul { margin: 0; padding-left: 18px; }
+  .tl-what li { margin: 4px 0; font-size: 14px; }
+  .tl-what .who { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+  .tl-row.live { background: color-mix(in srgb, var(--accent) 7%, transparent);
+    margin: 0 -12px; padding: 16px 12px; border-radius: 8px; }
+
+  .note { font-size: 13px; color: var(--muted); border-left: 2px solid var(--accent);
+    padding: 4px 0 4px 14px; margin: 20px 0 0; }
+  a { color: var(--accent); }
+  strong { color: var(--ink); font-weight: 600; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    section { animation: rise .5s cubic-bezier(.2,.7,.3,1) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Alpaca AI Trading Agents Hackathon · entrada</p>
+    <h1>IV Desk — estado del build</h1>
+    <p class="lede">Motor determinista + mesa de agentes LLM + ejecución por CLI, todo en paper.
+      El código está mergeado y verde en <code>main</code>. Faltan la calibración con mercado
+      abierto y el material de entrega.</p>
+    <div class="datestrip">
+      <span>Hoy: <b>sáb 29 ago</b></span>
+      <span>Go-live: <b>lun 31, 15:30 CEST</b></span>
+      <span>Snapshot P&amp;L: <b>jue 3, 22:00 CEST</b></span>
+      <span>Entrega: <b>vie 4, 17:00 CEST</b></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="n">01</span><h2>Preparación por eje del jurado</h2></div>
+    <div class="axes">
+      <div class="axis">
+        <span class="name">P&amp;L Performance</span>
+        <span class="track"><span class="fill" style="width:35%"></span></span>
+        <span class="pct">~35%</span>
+      </div>
+      <div class="axis">
+        <span class="name">Technology</span>
+        <span class="track"><span class="fill" style="width:80%"></span></span>
+        <span class="pct">~80%</span>
+      </div>
+      <div class="axis">
+        <span class="name">Creativity</span>
+        <span class="track"><span class="fill" style="width:75%"></span></span>
+        <span class="pct">~75%</span>
+      </div>
+      <div class="axis">
+        <span class="name">Presentation</span>
+        <span class="track"><span class="fill" style="width:25%"></span></span>
+        <span class="pct">~25%</span>
+      </div>
+    </div>
+    <p class="note">Son <strong>4</strong> ejes, ~25% cada uno (Social Engagement es premio aparte).
+      P&amp;L depende del mercado del lunes, no de nosotros — por eso la estrategia es
+      "frecuencia &gt; tamaño": muchos trades pequeños alimentan Technology, Creativity y
+      Presentation aunque el retorno sea plano. Presentation es lo más flojo: no hay vídeo ni deck.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">02</span><h2>El pipeline — qué está construido</h2></div>
+    <div class="pipe">
+      <div class="node"><span class="tag" style="background:var(--done)"></span>
+        <span class="k">Señal</span><div class="v">signal.py</div>
+        <div class="d">VRP ratio + GEX normalizado + régimen. Determinista.</div></div>
+      <span class="arrow">→</span>
+      <div class="node"><span class="tag" style="background:var(--done)"></span>
+        <span class="k">Riesgo</span><div class="v">risk.py</div>
+        <div class="d">8 gates, sin discreción. Entrada única <code>evaluate()</code>.</div></div>
+      <span class="arrow">→</span>
+      <div class="node"><span class="tag" style="background:var(--wip)"></span>
+        <span class="k">Mesa LLM</span><div class="v">debate.py · seats.py</div>
+        <div class="d">Quant / Bull / Bear / Desk Head. Solo recorta o veta. Sin probar con keys.</div></div>
+      <span class="arrow">→</span>
+      <div class="node"><span class="tag" style="background:var(--done)"></span>
+        <span class="k">Ejecución</span><div class="v">broker.py → Alpaca CLI</div>
+        <div class="d">Orden <code>mleg</code> de 4 patas. Reconcilia contra Alpaca.</div></div>
+      <span class="arrow">→</span>
+      <div class="node"><span class="tag" style="background:var(--done)"></span>
+        <span class="k">Journal</span><div class="v">journal.py</div>
+        <div class="d">Log append-only + curva de equity + ledger de predicciones.</div></div>
+    </div>
+    <p class="note">Todo esto lo orquesta <code>desk.py</code> cada 15 min desde GitHub Actions.
+      93 tests pasan · <code>ruff</code> limpio · el loop corre end-to-end contra Alpaca real
+      (en <code>dry_run</code>).</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">03</span><h2>Módulos, uno por uno</h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Módulo</th><th>Estado</th><th>Qué falta</th></tr></thead>
+      <tbody>
+        <tr><td><code>broker.py</code> — cliente CLI</td>
+          <td><span class="pill p-done">listo</span></td>
+          <td>Nada. Todo pasa por <code>alpaca api</code>. Guardarraíl de cuenta incluido.</td></tr>
+        <tr><td><code>marketdata.py</code> — datos de opciones</td>
+          <td><span class="pill p-done">listo</span></td>
+          <td>Nada. REST para lecturas (permitido). Griegas + IV del snapshot.</td></tr>
+        <tr><td><code>signal.py</code> — señal determinista</td>
+          <td><span class="pill p-wip">calibrar</span></td>
+          <td>Umbrales provisionales (<code>vrp_ratio_min</code>, <code>gex_min</code>).
+            Definitivos salen del backtest el domingo.</td></tr>
+        <tr><td><code>execution.py</code> — strikes, órdenes, salidas</td>
+          <td><span class="pill p-wip">verificar</span></td>
+          <td>El exit manager no se ha probado sobre una posición real. Harness de replay
+            el domingo (mercado cerrado el finde).</td></tr>
+        <tr><td><code>risk.py</code> — Risk Officer</td>
+          <td><span class="pill p-done">listo</span></td>
+          <td>Nada. net-delta ya agregado, asignación temprana detectada.</td></tr>
+        <tr><td><code>calendar.py</code> — blackout macro</td>
+          <td><span class="pill p-done">listo</span></td>
+          <td>Fechas verificadas. Decidir si <code>BLACKOUT=2h</code> es mucho (bloquea
+            2 mañanas de 4).</td></tr>
+        <tr><td><code>debate.py</code> · <code>seats.py</code> — mesa LLM</td>
+          <td><span class="pill p-wip">sin probar en vivo</span></td>
+          <td>Código y tests hechos. Falta: <code>FEATHERLESS_MODELS</code> (3 ids),
+            keys en secrets, y una corrida real end-to-end.</td></tr>
+        <tr><td><code>desk.py</code> — loop principal</td>
+          <td><span class="pill p-done">listo</span></td>
+          <td>Nada. Guard + reconcile + exits + gates + señal + debate + journal.</td></tr>
+        <tr><td><code>.github/workflows/desk.yml</code></td>
+          <td><span class="pill p-wip">falta activar</span></td>
+          <td>CLI pineado y cacheado. Falta: poner los secrets de UC3M y un
+            <code>workflow_dispatch</code> de prueba.</td></tr>
+        <tr><td><code>backtest/replay.py</code></td>
+          <td><span class="pill p-wip">correr con keys</span></td>
+          <td>Harness listo. Falta la corrida real con la cadena del viernes para fijar
+            parámetros.</td></tr>
+        <tr><td>Write-up · vídeo · deck</td>
+          <td><span class="pill p-todo">sin empezar</span></td>
+          <td>Todo. Guion en <code>docs/SUBMISSION.md</code>. Grabar desde el lunes.</td></tr>
+        <tr><td>Dashboard</td>
+          <td><span class="pill p-todo">opcional</span></td>
+          <td>Carpeta vacía. Las reglas dicen que la UI no se evalúa — solo si sobra tiempo.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">04</span><h2>CLI, MCP y dashboard — cómo se hacen</h2></div>
+    <div class="cards">
+
+      <div class="card">
+        <h3>Ejecución por CLI <span class="pill p-done">hecho</span></h3>
+        <p class="sub">Requisito de elegibilidad: Trading API + (CLI o MCP). Cubierto.</p>
+        <p><strong>Qué es.</strong> El binario oficial <code>alpacahq/cli</code> (pineado a
+          <code>v0.0.14</code>). No tiene flag multi-pata, así que se usa el escape hatch
+          <code>alpaca api</code> — misma request que probamos el Día 0, distinto transporte.</p>
+        <span class="lbl">Cómo funciona ahora</span>
+        <pre><span class="c"># agent/broker.py — cada llamada de trading sale por aquí</span>
+subprocess.run(["alpaca", "api", "POST", "/v2/orders",
+                "--body", json.dumps(body), "--quiet"])
+
+<span class="c"># condor de 4 patas, limit_price FIRMADO (negativo = crédito)</span>
+{"order_class": "mleg", "qty": "1", "type": "limit",
+ "limit_price": "-1.10", "legs": [ ...4 legs... ]}</pre>
+        <span class="lbl">Instalar en local (para probar)</span>
+        <pre>curl -sL https://github.com/alpacahq/cli/releases/download/v0.0.14/\
+cli_0.0.14_windows_amd64.zip -o alpaca.zip
+<span class="c"># descomprimir, alpaca.exe al PATH, luego:</span>
+export MSYS_NO_PATHCONV=1   <span class="c"># Git Bash mutila las rutas /v2/...</span>
+alpaca api GET /v2/account</pre>
+        <span class="lbl">Lo que queda</span>
+        <ul><li>Poner las keys de UC3M en los secrets de GitHub (no en <code>.env</code>).</li>
+          <li>El workflow ya instala, cachea y verifica la versión — solo hay que lanzarlo.</li></ul>
+      </div>
+
+      <div class="card optional">
+        <h3>MCP — "ask the desk" <span class="pill p-todo">opcional</span> <span class="est">~2–3 h</span></h3>
+        <p class="sub">Cortado (issue #20). El CLI ya cumple el requisito. Se hace solo si Technology
+          y Presentation ya están cerrados el miércoles.</p>
+        <p><strong>Qué es.</strong> Un servidor MCP mínimo que expone el estado del desk como
+          <em>resources</em> y un par de <em>tools</em> de solo lectura, para que un juez —o el
+          vídeo— le pregunte a la mesa "¿por qué no has operado hoy?" y reciba una respuesta
+          razonada del journal.</p>
+        <span class="lbl">Forma mínima (Python, <code>mcp</code> SDK)</span>
+        <pre><span class="c"># resources — solo lectura, cero riesgo</span>
+desk://state        <span class="c"># libro abierto: broker.positions() + trades.jsonl</span>
+desk://signal/{sym} <span class="c"># último Signal por subyacente</span>
+desk://journal      <span class="c"># últimos N eventos: rejected, debate, opened, exit</span>
+desk://predictions  <span class="c"># ledger de tesis calificadas</span>
+
+<span class="c"># tools</span>
+explain_last_decision(symbol)  <span class="c"># lee el journal, resume el stand-down / debate</span>
+why_no_trade_today()           <span class="c"># agrega los motivos de rejected del día</span></pre>
+        <span class="lbl">Pasos</span>
+        <ol><li>Reutiliza <code>journal.py</code> y <code>broker.py</code> — el MCP no calcula nada,
+          solo lee lo que el loop ya escribió.</li>
+          <li>Servidor stdio local para la demo; no hace falta desplegarlo.</li>
+          <li>Registrarlo en la config del cliente MCP (Claude Desktop) para grabar el vídeo.</li>
+          <li>Documentar en el write-up los recursos y tools exactos que expone.</li></ol>
+        <p class="note">Riesgo cero: si se rompe, no toca el trading. Solo sube Technology y da
+          un plano de vídeo. No bloquea nada.</p>
+      </div>
+
+      <div class="card optional">
+        <h3>Dashboard "trading floor" <span class="pill p-todo">opcional</span> <span class="est">~1 día</span></h3>
+        <p class="sub">Las reglas dicen explícitamente que <strong>la UI no se evalúa</strong>.
+          Último de la lista. Solo si el agente + write-up + vídeo están hechos.</p>
+        <p><strong>Qué es.</strong> Una página que lee <code>data/</code> del repo (que el cron
+          commitea) y lo pinta: curva de equity, feed del debate, libro de posiciones, ledger de
+          predicciones acertadas/falladas.</p>
+        <span class="lbl">Forma más barata que funciona</span>
+        <pre><span class="c"># NO Next.js. Una sola página estática que hace fetch del raw de GitHub:</span>
+fetch("https://raw.githubusercontent.com/alvaarocl/iv-desk/main/data/equity.csv")
+fetch(".../data/journal.jsonl")
+
+<span class="c"># deploy: GitHub Pages o Vercel estático. Cero backend, cero coste.</span></pre>
+        <span class="lbl">Secciones</span>
+        <ul><li><strong>Equity</strong> — sparkline de <code>equity.csv</code>, número grande del P&amp;L.</li>
+          <li><strong>La mesa</strong> — últimos eventos <code>debate</code>: tesis, veredicto de cada seat.</li>
+          <li><strong>Libro</strong> — posiciones abiertas con strikes y max loss.</li>
+          <li><strong>Ledger</strong> — predicciones cerradas, ✓/✗.</li></ul>
+        <p class="note">Si se hace, es contenido para redes (premio aparte) y un plano de vídeo.
+          Pero cada hora aquí es una hora que no está en la calibración o el write-up, que sí
+          puntúan.</p>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">05</span><h2>Los 2 días que quedan</h2></div>
+    <div class="tl">
+      <div class="tl-row">
+        <div class="tl-when">Sáb 29<span>resto del día · mercado cerrado</span></div>
+        <div class="tl-what"><ul>
+          <li><span class="who">ÁNGEL</span> cerrar sus 13 issues (código ya en <code>main</code>)</li>
+          <li><span class="who">TÚ</span> — hecho: 13 issues, merge, calendario, submission doc</li>
+          <li><span class="who">EQUIPO</span> confirmar la ventana de P&amp;L en Discord (jueves)</li>
+        </ul></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-when">Dom 30<span>mercado cerrado</span></div>
+        <div class="tl-what"><ul>
+          <li><span class="who">ÁNGEL</span> correr <code>backtest/replay.py</code> con keys → fijar
+            <code>vrp_ratio_min</code>, <code>short_delta</code>, <code>min_credit_frac</code></li>
+          <li><span class="who">ÁNGEL</span> mesa LLM end-to-end con <code>FEATHERLESS_MODELS</code>
+            + Anthropic reales → un debate completo con tesis en el journal</li>
+          <li><span class="who">TÚ</span> harness de replay del exit manager (3 rutas de salida)</li>
+          <li><span class="who">TÚ</span> secrets de UC3M en GitHub · <code>workflow_dispatch</code>
+            en <code>dry_run</code> → confirmar que el runner arranca y autentica</li>
+          <li><span class="who">TÚ</span> guion del vídeo escrito</li>
+        </ul></div>
+      </div>
+      <div class="tl-row live">
+        <div class="tl-when">Lun 31<span>15:30 CEST · GO LIVE</span></div>
+        <div class="tl-what"><ul>
+          <li>15:00 — checklist de <code>docs/RUNBOOK.md</code>. UC3M con $100k exactos, cero histórico</li>
+          <li>15:30 — <code>DESK_MODE=live</code> en el workflow. 0.5% NAV/trade, máx 8 posiciones</li>
+          <li>Vigilar cada invocación de 15 min. Log de incidencias. <strong>Grabar clips desde hoy</strong></li>
+          <li>Post social #1</li>
+        </ul></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-when">Mar 1 – Mié 2<span>P&amp;L días 2–3</span></div>
+        <div class="tl-what"><ul>
+          <li>El desk opera. Blackout ISM las mañanas del 1 y del 3</li>
+          <li><span class="who">TÚ</span> grabar el vídeo demo (mar) · montarlo (mié)</li>
+          <li><span class="who">ÁNGEL</span> write-up desde el código (#18) · deck + cover</li>
+          <li>Dashboard solo si todo lo anterior está</li>
+        </ul></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-when">Jue 3<span>22:00 CEST · snapshot final</span></div>
+        <div class="tl-what"><ul>
+          <li>21:45 — el agente cierra el riesgo abierto restante</li>
+          <li>Tras el cierre: capturas de equity, posiciones, activity log. <strong>Fijar el P&amp;L</strong></li>
+        </ul></div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-when">Vie 4<span>17:00 CEST · entrega</span></div>
+        <div class="tl-what"><ul>
+          <li>Write-up final con el número real · vídeo · deck</li>
+          <li><code>gh repo edit --visibility public</code> — <strong>hoy, no antes</strong></li>
+          <li>Formulario lablab: account ID <code>PA39HSCQE8S3</code>, links, cover</li>
+        </ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">06</span><h2>Riesgos vivos</h2></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Riesgo</th><th>Estado</th><th>Mitigación</th></tr></thead>
+      <tbody>
+        <tr><td>La señal no dispara nunca (tape de baja vol)</td>
+          <td><span class="pill p-wip">observando</span></td>
+          <td>El smoke test del sábado da <code>vrp_ratio</code> 0.67–0.94 → stand down. La cadena
+            del viernes decide. Plan B: narrativa "la mesa que sabe cuándo NO operar".</td></tr>
+        <tr><td>Exit manager sin probar en posición real</td>
+          <td><span class="pill p-blocked">bloqueado hasta dom</span></td>
+          <td>Mercado cerrado el finde. Harness de replay + arranque escalonado el lunes
+            (primera posición en la cuenta de testing).</td></tr>
+        <tr><td>Cron de GitHub Actions best-effort (5–30 min de retraso)</td>
+          <td><span class="pill p-done">mitigado</span></td>
+          <td>Reconcile al arrancar · cierre por expiración desde las 15:30 · <code>exits_only</code>
+            kill switch · <code>workflow_dispatch</code> manual.</td></tr>
+        <tr><td>Mesa LLM sin probar con proveedores reales</td>
+          <td><span class="pill p-wip">domingo</span></td>
+          <td>Degrada a stand-down ante cualquier fallo. <code>DESK_DEBATE=off</code> como escape.</td></tr>
+        <tr><td>Presentation al 25% — sin vídeo ni deck</td>
+          <td><span class="pill p-todo">pendiente</span></td>
+          <td>Grabar clips desde el lunes. Guion ya escrito. No dejarlo para el jueves.</td></tr>
+        <tr><td>Validación con mentor — formato/fecha desconocidos</td>
+          <td><span class="pill p-blocked">sin info</span></td>
+          <td>Preguntar. Si es revisión de la submission, tenerla lista el miércoles.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+</body>
+</html>
