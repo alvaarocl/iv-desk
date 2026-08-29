@@ -2,17 +2,28 @@ name: IV Desk loop
 
 on:
   schedule:
-    # Every 15 min, 13:30–20:15 UTC, Mon–Fri  (~09:30–16:15 ET). GitHub cron is UTC and best-effort.
+    # Every 15 min, 13:30–20:15 UTC, Mon–Fri (~09:30–16:15 ET). GitHub cron is best-effort and
+    # can be delayed or skipped under load — the loop is built to tolerate a missed run
+    # (reconcile on start, exit window opens at 15:30 ET). See docs/RUNBOOK.md.
     - cron: "*/15 13-20 * * 1-5"
   workflow_dispatch:
     inputs:
       mode:
-        description: "dry_run or live"
+        description: "dry_run | live | exits_only"
         default: "dry_run"
+        type: choice
+        options: [dry_run, live, exits_only]
 
 concurrency:
   group: desk-loop
   cancel-in-progress: false
+
+permissions:
+  contents: write
+
+env:
+  # Pinned — alpacahq/cli is an alpha preview whose flags/output "may change without notice".
+  ALPACA_CLI_VERSION: "0.0.14"
 
 jobs:
   run:
@@ -20,23 +31,60 @@ jobs:
     env:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+      ALPACA_ACCOUNT_ID: ${{ vars.ALPACA_ACCOUNT_ID }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       FEATHERLESS_API_KEY: ${{ secrets.FEATHERLESS_API_KEY }}
       FEATHERLESS_MODELS: ${{ vars.FEATHERLESS_MODELS }}
+      # workflow_dispatch input wins; otherwise repo var; otherwise the safe default.
       DESK_MODE: ${{ github.event.inputs.mode || vars.DESK_MODE || 'dry_run' }}
+      ALPACA_CLI_BIN: alpaca
     steps:
       - uses: actions/checkout@v4
-      - name: Install Alpaca CLI
+
+      - name: Cache Alpaca CLI
+        id: cli-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/alpaca
+          key: alpaca-cli-${{ env.ALPACA_CLI_VERSION }}-linux-amd64
+
+      - name: Install Alpaca CLI (pinned)
+        if: steps.cli-cache.outputs.cache-hit != 'true'
         run: |
-          curl -sL https://github.com/alpacahq/cli/releases/latest/download/alpaca_Linux_x86_64.tar.gz \
-            | tar xz && sudo mv alpaca /usr/local/bin/ && alpaca version
+          set -euo pipefail
+          mkdir -p ~/.local/bin
+          v="${ALPACA_CLI_VERSION}"
+          url="https://github.com/alpacahq/cli/releases/download/v${v}/cli_${v}_linux_amd64.tar.gz"
+          curl -sSL --fail "$url" -o /tmp/alpaca.tgz
+          tar -xzf /tmp/alpaca.tgz -C /tmp
+          install -m 0755 /tmp/alpaca ~/.local/bin/alpaca
+
+      - name: Verify CLI version
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          got="$("$HOME/.local/bin/alpaca" version 2>&1 | tr -d '[:space:]')"
+          echo "alpaca CLI reports: $got"
+          test "$got" = "${ALPACA_CLI_VERSION}" || { echo "::error::CLI version mismatch"; exit 1; }
+
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync
-      - run: uv run python -m agent.desk
+      - run: uv sync --frozen
+
+      - name: Run desk loop
+        run: uv run python -m agent.desk
+
       - name: Persist journal
         if: always()
         run: |
+          set -euo pipefail
           git config user.name "iv-desk-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add data/ && git diff --cached --quiet || git commit -m "loop $(date -u +%FT%TZ)"
-          git push || true
+          git add data/
+          git diff --cached --quiet && exit 0
+          git commit -m "loop $(date -u +%FT%TZ)"
+          # Rebase onto any concurrent commit before pushing; retry once. A lost push would make
+          # the agent forget open positions, so this must not be best-effort (issue #3, #23).
+          for attempt in 1 2 3; do
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $attempt failed; retrying"; sleep 5
+          done
+          echo "::error::could not persist journal after 3 attempts"; exit 1

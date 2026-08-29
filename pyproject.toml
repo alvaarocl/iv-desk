@@ -4,17 +4,15 @@ version = "0.1.0"
 description = "Autonomous options desk trading the volatility risk premium on Alpaca"
 requires-python = ">=3.11"
 dependencies = [
-    "alpaca-py>=0.33",
-    "httpx>=0.27",
-    "pandas>=2.2",
-    "numpy>=1.26",
-    "scipy>=1.13",
-    "python-dotenv>=1.0",
-    "pydantic>=2.7",
-    "rich>=13.7",
-    "anthropic>=0.40",
-    "openai>=1.40",
+    "httpx>=0.27",            # market-data REST reads (marketdata.py)
+    "numpy>=1.26",            # signal maths (signal.py)
+    "python-dotenv>=1.0",     # .env loading
+    "anthropic>=0.40",        # LLM desk — Bull / Bear / Desk Head seats (issue #13, in progress)
+    "openai>=1.40",           # LLM desk — Featherless Quant ensemble (OpenAI-compatible endpoint)
+    "tzdata>=2024.1",         # ZoneInfo("America/New_York") — no system tz db on Windows / slim CI
 ]
+# Removed 2026-08-30 (issue #15): alpaca-py (order path is the Alpaca CLI, not the SDK),
+# pandas / scipy (signal.py uses numpy only), pydantic and rich (unused).
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]
@@ -25,5 +23,9 @@ line-length = 100
 [tool.ruff.lint]
 ignore = ["DTZ011"]  # date.today() is intentional for expiration-date matching (exchange local date)
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["C408", "S101", "SLF001"]  # dict() reads clearer in fixtures; asserts and _private are the point
+
 [tool.pytest.ini_options]
-testpaths = ["agent", "tests"]
+testpaths = ["tests"]
+pythonpath = ["."]

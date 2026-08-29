@@ -55,5 +55,10 @@ FEATHERLESS_MODELS = [m for m in os.environ.get("FEATHERLESS_MODELS", "").split(
 
 
 def desk_mode() -> str:
-    """dry_run | live — read fresh each loop so workflow_dispatch can flip it."""
-    return os.environ.get("DESK_MODE", "dry_run").strip().lower()
+    """dry_run | live | exits_only — read fresh each loop so workflow_dispatch can flip it.
+
+    `exits_only` is the kill switch: reconcile and manage the open book against the live account,
+    but open nothing new. Anything unrecognised falls back to the safe `dry_run`.
+    """
+    m = os.environ.get("DESK_MODE", "dry_run").strip().lower()
+    return m if m in ("dry_run", "live", "exits_only") else "dry_run"
