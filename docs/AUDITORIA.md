@@ -113,7 +113,7 @@ umbral viejo da solo 2 trades): hacían falta **las dos palancas**.
 
 `0.33 × 4.0` exige **$1.33 de crédito en un condor de 4 puntos a 18Δ**. Con IV al 6-10% a 1-3 DTE eso recoge $0.30-0.60 → `cr_frac ≈ 0.10`. Rechazado siempre. **Es independiente del VRP**: aunque se arregle #6, este sigue bloqueando todo.
 
-### 23. `daily_bars` devuelve las barras más antiguas, no las más recientes
+### 23. ~~`daily_bars` devuelve las barras más antiguas~~ ✅ RESUELTO (29 ago)
 `agent/marketdata.py:31-36` · issue #26 · **encontrado por el backtest, verificado a mano**
 
 `start` se calcula a 110 días naturales (~78 sesiones) pero `limit` es 60, y Alpaca devuelve en orden
@@ -121,8 +121,13 @@ umbral viejo da solo 2 trades): hacían falta **las dos palancas**.
 **termina ~18 sesiones antes de hoy**.
 
 El gate de VRP compara la IV de hoy contra la volatilidad realizada de hace casi un mes. No falla ni
-avisa: devuelve un número plausible. **Invalida parcialmente la calibración de `vrp_ratio_min` hasta
-que se arregle.**
+avisa: devuelve un número plausible. **Invalidaba parcialmente la calibración de `vrp_ratio_min`.**
+
+> Arreglado: `daily_bars` ahora pagina la ventana entera y devuelve la cola
+> (`bars[-lookback_days:]`), con 3 tests de regresión. **Consecuencia importante:** el smoke run
+> de la lane de ejecución que midió `rv_hat` en 15-27% contra una IV del 8-12% se hizo con este
+> bug dentro *y* con el `yang_zhang` que duplicaba el gap overnight. **Esa medición no sirve para
+> concluir nada sobre el VRP** — hay que repetirla con las dos correcciones dentro.
 
 ---
 

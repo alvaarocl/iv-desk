@@ -31,10 +31,30 @@ def stock_price(symbol: str) -> float:
 
 
 def daily_bars(symbol: str, lookback_days: int = 40) -> list[dict]:
-    start = (date.today() - timedelta(days=lookback_days * 2)).isoformat()
-    return _get(
-        f"/v2/stocks/{symbol}/bars", timeframe="1Day", start=start, limit=lookback_days + 5, feed="sip"
-    ).get("bars", [])
+    """The `lookback_days` most RECENT daily bars, oldest-first.
+
+    Alpaca returns bars ascending from `start` and `limit` truncates the tail, so asking for
+    a wide window with a small `limit` hands back the OLDEST page. The previous version did
+    exactly that (start ~2x lookback in calendar days, limit lookback+5), which for the
+    lookback=55 that `signal.fetch` uses meant a series ending ~18 sessions ago — a stale
+    denominator feeding the VRP gate, with no error to notice. See issue #26.
+
+    So: page through the whole window and keep the tail.
+    """
+    # ~1.6 calendar days per session, plus slack for holidays and long weekends.
+    start = (date.today() - timedelta(days=int(lookback_days * 1.7) + 10)).isoformat()
+    bars: list[dict] = []
+    token: str | None = None
+    while True:
+        page = _get(
+            f"/v2/stocks/{symbol}/bars", timeframe="1Day", start=start,
+            limit=10_000, feed="sip", page_token=token,
+        )
+        bars.extend(page.get("bars") or [])
+        token = page.get("next_page_token")
+        if not token:
+            break
+    return bars[-lookback_days:]
 
 
 def option_chain_snapshot(
