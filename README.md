@@ -56,11 +56,18 @@ Full debate runs **only on open-position decisions** (a handful per day). Monito
 
 ## Alpaca stack usage
 
-- **CLI** (`alpacahq/cli`) — the 6-day production trading loop (cron). Order placement, positions, account, clock/calendar.
-- **MCP server** — the "ask the desk" chat interface and live judge exploration.
-- **Options market data** — snapshot endpoint for greeks + IV; per-contract endpoint for open interest (cached).
-- **`order_class: mleg`** — multi-leg condors / verticals with bracket exits.
-- **Paper only.** Fresh dedicated account, $100,000 starting balance.
+- **CLI** (`alpacahq/cli`, pinned `v0.0.14`) — every trading-API call in the production loop routes
+  through `alpaca api METHOD /path`: order placement, cancels, account, positions, clock,
+  `/v2/options/contracts`. This is the rules' "Trading API + CLI/MCP" requirement.
+- **Options market data** (REST, allowed for reads) — snapshot endpoint for greeks + IV;
+  per-contract endpoint for open interest (T-2, used for GEX).
+- **`order_class: mleg`** — iron condors and verticals as a single 4-leg order. `limit_price` is
+  signed (negative = credit). Exits are managed by the loop, not exchange brackets.
+- **Paper only.** Competition account `PA39HSCQE8S3`, $100,000 starting balance; all dev on a
+  separate testing account `PA3TQHQKM5AD`.
+
+An MCP "ask the desk" interface was considered (issue #20) and cut — the CLI already satisfies the
+requirement. It may be added later purely as a demo aid.
 
 ---
 
