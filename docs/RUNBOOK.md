@@ -166,3 +166,24 @@ recortar o vetar (`agent/debate.py`).
 - Las keys de competición nunca en el `.env` local.
 - `ALPACA_ACCOUNT_ID` es **siempre** el id de competición (`PA39HSCQE8S3`), en todas partes — es lo
   que comprueba el guardarraíl y lo que va en la submission.
+
+---
+
+## Setup local (antes de poder correr nada)
+
+El CLI de Alpaca **no es opcional**: `agent/broker.py` rutea todas las llamadas de trading por él
+(issue #4), así que sin el binario ni siquiera `broker.account()` funciona.
+
+```bash
+V=0.0.14   # el mismo pin que .github/workflows/desk.yml — no uses "latest", el CLI es alpha
+ARCH="darwin_arm64"   # o darwin_amd64 / linux_amd64
+curl -sSL --fail "https://github.com/alpacahq/cli/releases/download/v${V}/cli_${V}_${ARCH}.tar.gz" \
+  | tar -xz -C /tmp && install -m 0755 /tmp/alpaca ~/.local/bin/alpaca
+alpaca version   # debe imprimir exactamente $V
+```
+
+Después, `cp .env.example .env` y rellenar. Comprobación de que todo está en pie:
+
+```bash
+uv run python -c "from agent import broker; print(broker.account()['account_number'])"
+```
