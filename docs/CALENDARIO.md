@@ -34,11 +34,10 @@ Cuatro. Todas de **15:30 a 22:00 CEST** (09:30–16:00 ET).
 - **Lun 31 ago es sesión hábil** — verificado: el Labor Day 2026 cae el **lun 7 sep**, fuera de la ventana. No hay festivo ni cierre anticipado dentro de la ventana.
 - **Expiraciones de competición: ≤ 3 sep.** Nada que expire el viernes 4, porque el snapshot ya habrá pasado.
 
-> ⚠️ **Pendiente de confirmar en Discord.** La ventana "snapshot EOD jueves 3 sep" viene de las
-> guidelines privadas de Alpaca del 29 ago y **no es verificable públicamente**. Toda la política de
-> expiraciones depende de ella. No la cambiéis sin confirmar: si el snapshot fuera el viernes y
-> cerramos el jueves perdemos una sesión, pero si es el jueves y tenemos expiraciones del viernes
-> abiertas perdemos el proyecto. La asimetría actual es la correcta. → issue #19
+> ✅ **Confirmado en Discord (29 ago):** ventana lun 31 ago 09:30 ET → vie 4 sep 09:30 ET,
+> **snapshot de equity al cierre del jueves 3 sep**, y las posiciones que expiran el vie 4
+> **quedan excluidas** de la medición. Coincide exactamente con lo que ya asumíamos: el número que
+> cuenta es la equity del jueves, y las operaciones de competición usan expiraciones ≤ 3 sep.
 
 ---
 

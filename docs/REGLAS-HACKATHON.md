@@ -48,23 +48,28 @@ La ficha del evento da **$5.000**: 1º $2.500 · 2º $1.500 · 3º $1.000. Otras
 |---|---|---|
 | Evento | 28 ago – 4 sep 2026 | Pública |
 | **Deadline de submission** | **vie 4 sep, 15:00 UTC** (17:00 CEST) | Pública |
-| **Ventana de P&L** | lun 31 ago 09:30 ET → snapshot equity cierre jue 3 sep | ⚠️ Guidelines privadas 29 ago |
-| Sesiones que cuentan | lun 31 · mar 1 · mié 2 · jue 3 = **4 sesiones** | ⚠️ Guidelines privadas |
+| **Ventana de P&L** | lun 31 ago 09:30 ET → **vie 4 sep 09:30 ET** | ✅ Confirmado en Discord |
+| **Snapshot de equity** | **cierre del jueves 3 sep** (close of business) | ✅ Confirmado en Discord |
+| Sesiones que cuentan | lun 31 · mar 1 · mié 2 · jue 3 = **4 sesiones** | ✅ |
+
+### Confirmado en Discord (29 ago)
+
+Cita literal de la respuesta:
+
+> *"The official P&L scoring window is from Monday, August 31 at 9:30 a.m. ET to Friday,
+> September 4 at 9:30 a.m. ET. The total equity snapshot will be taken at the close of business
+> on Thursday, September 3. Positions expiring on Friday, September 4 are indeed excluded from
+> this measurement."*
+
+**Consecuencia (sin cambios respecto a lo que asumíamos):** el número que cuenta es la equity a
+cierre del **jueves 3**. Las **operaciones de competición usan expiraciones ≤ 3 sep** — nada que
+expire el viernes 4, porque ya no entra en la medición. El viernes por la mañana no hay snapshot;
+es día de entrega, no de trading.
 
 ### Verificado por nuestra parte
 
 - **Lun 31 ago es sesión hábil.** El Labor Day 2026 cae el **lun 7 sep**, después del hackathon. No hay festivo dentro de la ventana.
 - Días de la semana: 31 ago lunes · 1 sep martes · 3 sep jueves · 4 sep viernes.
-
-### Pendiente de confirmar en Discord
-
-La ventana "snapshot EOD jueves 3 sep" **no es verificable públicamente**. Toda nuestra política de expiraciones (≤ 3 sep) depende de ella.
-
-**No la cambiéis sin confirmar.** La asimetría actual está bien elegida:
-- Si el snapshot fuera el viernes y cerramos el jueves → perdemos una sesión de P&L.
-- Si el snapshot es el jueves y tenemos expiraciones del viernes abiertas → perdemos el proyecto.
-
-Ante la duda, la opción conservadora es la correcta. Pero preguntadlo. → issue #19
 
 ---
 

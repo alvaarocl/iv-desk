@@ -15,9 +15,9 @@ durante las sesiones en vivo: [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 | lablab submission deadline | **Fri 4 Sep 11:00 ET** (15:00 UTC) | **17:00 CEST** |
 | Agent must start trading | From the **fresh competition account**, Mon 31 Aug 09:30 ET. Nothing before counts. | 15:30 CEST |
 
-> ⚠️ La ventana de P&L viene de las **guidelines privadas** del 29 ago y **no es verificable
-> públicamente**. **Pendiente de confirmar en Discord** — toda la política de expiraciones (≤ 3 sep)
-> depende de ella. No cambiarla sin confirmar. → issue #19
+> ✅ **Confirmada en Discord (29 ago):** window Mon 31 Aug 09:30 ET → Fri 4 Sep 09:30 ET, equity
+> snapshot at the **close of Thu 3 Sep**, Fri-4-Sep expirations **excluded**. Competition trades
+> use expirations ≤ 3 Sep. (#19)
 
 Judged on **total account equity** at the Thursday snapshot (not cash) + creativity, autonomy and
 robustness of the agent workflow. **UI is explicitly not required.**

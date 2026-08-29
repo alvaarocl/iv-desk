@@ -237,9 +237,9 @@ Redactado en presente, promete *"scheduled Alpaca CLI loop"* (es REST), *"MCP se
 **Regla:** el write-up se escribe **desde el código**, no desde el plan.
 
 ### 20. ~~Datos del hackathon incorrectos en los docs~~ ✅ RESUELTO (29 ago)
-issue #19 · ver [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md) · **premio y criterios corregidos; queda confirmar la ventana en Discord**
+issue #19 · ver [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md) · **premio, criterios y ventana de P&L confirmados (Discord 29 ago)**
 
-Premio ($6.300 → $5.000), criterios de jurado (son 4, no 5), y confirmar la ventana de P&L en Discord.
+Premio ($6.300 → $5.000), criterios de jurado (son 4, no 5), y ventana de P&L — todo confirmado (Discord 29 ago): snapshot jueves 3 EOD, expiraciones ≤ 3 sep.
 
 ---
 

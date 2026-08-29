@@ -114,7 +114,7 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 - **Risk posture:** a single consistent core book. The directional satellite sleeve was removed on
   29 Aug (issue #14) — it was never implemented and `satellite_frac` was never read.
 - **Competition trades use expirations ≤ 3 Sep** — the equity snapshot is EOD Thursday 3 Sep
-  (pending the Discord confirmation above).
+  (confirmed in Discord 29 Aug; Fri-4-Sep expirations are excluded from the measurement).
 - **Accounts:** testing = "Paper Trading" `PA3TQHQKM5AD` (has cancelled probe orders — all dev/testing
   runs here). Competition = "PAPER UC3M" `PA39HSCQE8S3` — untouched, first order Mon 31 Aug 09:30 ET,
   its keys live only in GitHub Actions secrets.
@@ -129,11 +129,10 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 
 ### Official Alpaca rules that shape the work (received 29 Aug)
 
-- **P&L scoring window: Mon 31 Aug 09:30 ET → total-equity snapshot EOD Thu 3 Sep.** Four sessions
-  count (31 Aug, 1–3 Sep). Friday 4 Sep and the NFP that morning do **not** count for P&L.
-  ⚠️ **Pending confirmation in Discord** — this comes from the private 29 Aug guidelines and is not
-  publicly verifiable. Our whole ≤ 3 Sep expiration policy hangs on it. Don't change it without
-  confirming; ask. → issue #19
+- **P&L scoring window (✅ confirmed in Discord, 29 Aug): Mon 31 Aug 09:30 ET → Fri 4 Sep 09:30 ET,
+  total-equity snapshot at the close of Thu 3 Sep.** Four sessions count (31 Aug, 1–3 Sep).
+  Positions expiring Fri 4 Sep are **excluded** — competition trades use expirations ≤ 3 Sep.
+  Literal quote in `docs/REGLAS-HACKATHON.md`. (#19)
 - Judged on **total account equity** (not cash) + creativity, autonomy, robustness of the workflow.
 - **A user interface is NOT required** — "primarily evaluating the autonomous agent workflow and its
   trading performance". The dashboard is optional; build it only if the agent + write-up are done.

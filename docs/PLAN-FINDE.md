@@ -73,7 +73,7 @@ arquitectura: "coincide con lo que Alpaca publica como buena práctica" (ver `RE
 Cierra **#18**.
 
 ### A7 · Cierre de docs e issues · P1/P2 · issue
-- **#19:** preguntar en Discord la ventana de P&L (tratar jueves como confirmado mientras tanto).
+- **#19:** ✅ ventana de P&L confirmada en Discord (29 ago) — snapshot jueves 3 EOD, expiraciones ≤ 3 sep. Cerrar #19.
   Verificar premio ($5.000) y "4 criterios" corregidos en todos los docs. Cerrar #19.
 - **#24:** `docs/RUNBOOK.md` ya fusionado. Verificar que el checklist de arranque dice "mesa
   Featherless", no Anthropic. Cerrar #24.

@@ -25,13 +25,10 @@ hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
 - **Premio: $5.000** (1º $2.500 · 2º $1.500 · 3º $1.000). Algunas fuentes dicen $6.000 contando dos
   premios sociales de $500. **No usar la cifra de $6.300 que arrastraba `CLAUDE.md`** (ya corregida
   allí y en `PLAN.md`).
-- **Ventana de scoring de P&L:** lunes **31 ago 9:30 ET (15:30 CEST) → snapshot de equity a cierre del
-  jueves 3 sep (22:00 CEST)**. Cuentan 4 sesiones: lun 31, mar 1, mié 2, jue 3.
-  **El viernes 4 NO cuenta para P&L.**
-  > ⚠️ **PENDIENTE — ACCIÓN HUMANA: preguntarlo en el Discord del hackathon.** Viene de las
-  > guidelines privadas y **no es verificable públicamente**. Toda la política de expiraciones
-  > (≤ 3 sep) depende de ello. Mientras no haya respuesta, **se trata el jueves como confirmado**
-  > (es la opción conservadora). No cambiarlo sin respuesta. → issue #19
+- **Ventana de scoring de P&L (✅ confirmada en Discord, 29 ago):** lun **31 ago 09:30 ET → vie 4 sep
+  09:30 ET**, con el **snapshot de equity al cierre del jueves 3 sep**. Cuentan 4 sesiones (31, 1, 2,
+  3). Las posiciones que expiran el **viernes 4 quedan excluidas** de la medición → operaciones de
+  competición con expiración ≤ 3 sep. Ver la cita literal en [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md).
 - Se juzga por **equity total de la cuenta** (no caja) + creatividad, autonomía y robustez del workflow.
   No hay Sharpe/Sortino/drawdown como métrica, solo equity. Sin scoreboard en vivo.
 - **La UI NO es obligatoria.** *"We are primarily evaluating the autonomous agent workflow and its
@@ -78,7 +75,7 @@ hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
 | `workflow_dispatch` en `dry_run` contra UC3M: confirma CLI + auth + `account=PA39HSCQE8S3` | Álvaro | B3 |
 | Verificar la cuenta UC3M `PA39HSCQE8S3` ($100k, nivel 3, cero histórico) | humano | B1 |
 | **Probar el exit manager sobre una posición real** en la cuenta de testing. `tests/test_exit_manager_replay.py` (B4) todavía **no está en esta rama**: confirmar que llega a `main` en el merge del domingo | Álvaro | B4 |
-| **Preguntar en Discord la ventana de P&L** | humano | #19 |
+| ~~Preguntar en Discord la ventana de P&L~~ ✅ hecho — jueves 3 EOD confirmado, expiraciones ≤ 3 sep | humano | #19 cerrado |
 | Limpiar `data/` de la sesión de testing antes del lunes (o asumirlo y anotarlo) | humano | RUNBOOK |
 
 ### Entrega (viernes 4, 17:00 CEST)
@@ -157,7 +154,7 @@ del finde (`PLAN-FINDE.md`).
 | Cuenta de **competición** | "PAPER UC3M" `PA39HSCQE8S3` — $100.000, nivel 3, intacta. **Primera orden: lun 31 ago 9:30 ET. No tocar antes.** Sus API keys solo en los secrets de GitHub. |
 | Repo | github.com/alvaarocl/iv-desk — **privado hasta el 4 sep**, luego público (obligatorio) |
 | Cupón Featherless | `ALPACA26` — $25, redimir en featherless.ai |
-| Ventana de P&L | **lun 31 ago 9:30 ET / 15:30 CEST → snapshot equity cierre jue 3 sep 16:00 ET / 22:00 CEST** (4 sesiones) — ⚠️ pendiente de confirmar en Discord (#19) |
+| Ventana de P&L | **lun 31 ago 9:30 ET / 15:30 CEST → snapshot equity cierre jue 3 sep 16:00 ET / 22:00 CEST** (4 sesiones) — ✅ confirmada en Discord 29 ago; expiraciones de competición ≤ 3 sep |
 | Fin de submissions (lablab) | **4 sep 2026, 15:00 UTC = 17:00 CEST = 11:00 ET** |
 | Expiraciones de competición | ≤ 3 sep |
 | Premio | **$5.000** (1º $2.500 · 2º $1.500 · 3º $1.000) |
