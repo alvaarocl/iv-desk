@@ -109,7 +109,9 @@ Fijadas por los probes de Día 0 (`../probes/RESULTS.md`). No revisar sin motivo
   condors cuando el VRP es rico, comprar debit spreads direccionales baratos cuando el gamma es
   negativo y hay tendencia. Mantiene la disciplina y garantiza un historial de P&L (que es un eje
   del jurado). Decisión final + calibración de parámetros el lunes 31 con quotes reales.
-- Parámetros a calibrar: `vrp_min`, `short_delta`, `min_credit_frac`, umbral de GEX.
+- Parámetros a calibrar con el backtest (#5): `vrp_ratio_min`, `gex_min`, `short_delta`,
+  `min_credit_frac` y el ancho de las alas. `vrp_min` (umbral absoluto) ya no existe: sustituido
+  por un ratio IV/RV el 29 ago (#6).
 
 ---
 

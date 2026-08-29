@@ -68,15 +68,22 @@ issue #5
 
 Dos gates independientes (#6 y #7) bloquean el 100% de los trades con la IV actual. No dan error: simplemente no pasa nada durante cuatro sesiones. **Sin backtest no lo sabremos hasta el lunes en vivo.**
 
-### 6. El VRP está mal medido y su umbral es absoluto
+### 6. ~~El VRP está mal medido y su umbral es absoluto~~ ✅ RESUELTO (29 ago)
 `signal.py` (`rv_forecast`, `build_signal`), `config.py:29` · issue #6
 
 - **Comparamos magnitudes distintas:** IV de opciones a 1-3 días contra realizada histórica de 20 sesiones anualizada. Nuestro diagnóstico *"la vol está baja"* puede ser en buena parte un **artefacto de medición**.
 - **`vrp_min = 0.03` es absoluto.** Con ATM IV al 8%, exige que la IV esté ~40% por encima de la RV. Calibrado mentalmente para un mundo de VIX 20. Debería ser un ratio: `IV / RV_hat >= 1.15`.
 - Bug menor: en `yang_zhang_rv` los arrays `log_ho/log_lo/log_co` tienen longitud N y `log_oc/log_cc` longitud N-1; los `[-n:]` quedan desplazados un día.
 
-### 7. `min_credit_frac` × `width_spy` es matemáticamente inalcanzable
+### 7. ~~`min_credit_frac` × `width_spy` es inalcanzable~~ ✅ RESUELTO (29 ago) — y la causa no era la que creíamos
 `config.py:30,33`, `desk.py:98` · issue #7
+
+> **Corrección al diagnóstico original.** Esta entrada culpaba a la volatilidad baja. Es
+> principalmente **geometría**: en un condor `credit/width ≈ 2 × |Δ| medio entre el strike corto y el
+> largo`, porque se cobran las dos alas y solo una puede perder. Al estrechar el ala, la pata larga
+> deja de ser un 5Δ y el ratio **sube**. Por eso el arreglo fue bajar el ancho (SPY/QQQ 4 → 2, IWM
+> 2 → 1), no esperar a que suba la IV.
+
 
 `0.33 × 4.0` exige **$1.33 de crédito en un condor de 4 puntos a 18Δ**. Con IV al 6-10% a 1-3 DTE eso recoge $0.30-0.60 → `cr_frac ≈ 0.10`. Rechazado siempre. **Es independiente del VRP**: aunque se arregle #6, este sigue bloqueando todo.
 
@@ -94,17 +101,17 @@ issue #9
 
 No existe `tests/`, hay **0 funciones `test_`**, y `pyproject.toml` declara `testpaths = ["agent", "tests"]`. `CONTRIBUTING.md` pide `pytest -q` antes de mergear: pasa vacío, siempre. Un solo test habría cazado #2.
 
-### 10. GEX: solo se usa el signo, falta umbral
+### 10. ~~GEX: solo se usa el signo, falta umbral~~ ✅ RESUELTO (29 ago)
 `signal.py:210` · issue #10
 
 `gex_sign = 1 if gex >= 0 else -1`. Un GEX de +$1M y uno de +$50Bn se tratan igual, sobre un dato con retraso T-2. `STATUS.md` lista "umbral de GEX" como parámetro a calibrar pero **no existe en `config.py`** (solo `gex_band`, que es la ventana de strikes).
 
-### 11. `net_delta` cableado a `0.0`
+### 11. ~~`net_delta` cableado a `0.0`~~ ✅ RESUELTO (29 ago)
 `desk.py:78`, `desk.py:93` · issue #11
 
 El gate de banda de delta de cartera de `risk.evaluate()` **nunca puede saltar**. `strategy-spec.md` lo vende como una de las protecciones de la mesa y en la práctica no existe.
 
-### 12. La lógica de "fade the trend" no está justificada
+### 12. ~~La lógica de "fade the trend" no está justificada~~ ✅ RESUELTO (29 ago)
 `signal.py:137-146`, `signal.py:222-227` · issue #12
 
 `classify_regime` invierte el sesgo a propósito: `trending_up → "bearish" → call_credit_spread`. Es decir, **vende calls por encima del mercado cuando el ADX dice que hay tendencia alcista**. Y las ramas de `bias` solo se alcanzan cuando `regime != "range"`, o sea justo cuando hay tendencia.
@@ -139,7 +146,7 @@ issue #24 · **`docs/RUNBOOK.md` creado**
 
 ## P2 — coherencia
 
-### 14. Código muerto: sleeve satélite y `conviction`
+### 14. ~~Código muerto: sleeve satélite y `conviction`~~ ✅ RESUELTO (29 ago)
 `config.py:38`, `desk.py:93`, `signal.py:220`, `signal.py:229` · issue #14
 
 - `satellite_frac` **nunca se lee**. `is_satellite` es siempre `False`. La rama `debit_spread` pone `sell = False`, con lo que `desk.py:85` la salta y `_pick()` ni tiene rama para ella. **El "modo adaptativo" que `CONCEPT.md` vende como mitigación del riesgo de baja volatilidad no está implementado** — y ese riesgo es exactamente el que se ha materializado.
@@ -155,7 +162,7 @@ Cero imports de: `alpaca-py`, `pandas`, `scipy`, `openai`, `pydantic`, `rich`, `
 
 0.5% de $100k = $500/trade → **1 contrato** → ~$120 de crédito. Con 3 posiciones en 4 sesiones el mejor escenario posible es ~0.3% de retorno. Pero el max loss del condor son $280 y una rotura se come dos ganadores. **Cedemos el upside y conservamos el downside.** Ver [`VIABILIDAD.md`](VIABILIDAD.md).
 
-### 17. Riesgo de asignación temprana en patas cortas ITM
+### 17. ~~Riesgo de asignación temprana en patas cortas ITM~~ ✅ MITIGADO (29 ago)
 `execution.py:180-182` · issue #25
 
 Las opciones sobre SPY/QQQ/IWM son de **estilo americano**: una pata corta ITM puede asignarse en cualquier momento. `strategy-spec.md` promete cerrar toda pata corta ITM a las 15:45 ET, pero el código solo cierra la estructura completa **el día de expiración**. Si nos asignan, aparecen ~$77.000 de nocional en acciones y el agente no lo contempla en absoluto.

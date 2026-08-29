@@ -63,7 +63,8 @@ Team of 2. Lanes: **(A) agent · (B) dashboard (optional) · (C) content/write-u
 - [ ] **A:** verify the exit manager on a real position in the **testing** account (open a 1-lot condor,
       watch it take profit / stop / expiry-close correctly).
 - [ ] **A:** GitHub Actions secrets = **competition** account keys. Workflow still `dry_run`.
-- [ ] **A:** calibrate `vrp_min`, `short_delta`, `min_credit_frac` against Friday's closing chain.
+- [ ] **A:** calibrate `vrp_ratio_min`, `gex_min`, `short_delta`, `min_credit_frac` and the wing
+      width against real chain data — **needs the backtest (#5), which needs `.env` keys**.
 - [ ] **B:** (if ahead) dashboard skeleton on Vercel reading `data/`.
 - [ ] **C:** finish write-up draft, slide outline. Social post #2 (architecture).
 

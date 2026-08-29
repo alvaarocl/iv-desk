@@ -167,7 +167,9 @@ Las opciones están, de media, un pelín caras de más. Ese "de más" es el VRP.
 
 **Vender opciones cuando el VRP es claramente positivo tiene ventaja estadística** — es como una
 aseguradora que cobra primas un poco infladas respecto al riesgo real. Nuestro bot **solo vende
-cuando el VRP supera un umbral** (`vrp_min`). Si las opciones están baratas, no vende.
+cuando la IV supera a la RV prevista por un margen relativo** (`vrp_ratio_min`, IV/RV ≥ 1.15). Si las
+opciones están baratas, no vende. *(Hasta el 29 ago esto era un umbral absoluto en puntos de vol,
+`vrp_min`, que no disparaba nunca con la volatilidad actual — ver issue #6.)*
 
 **VIX**
 El "índice del miedo" — la IV a 30 días del S&P 500, en un solo número. VIX 12 = mercado tranquilo.

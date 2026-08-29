@@ -37,7 +37,7 @@ Short-dated index options are structurally overpriced: implied volatility tends 
 - **Skew** — put/call IV asymmetry picks the structure and the strikes.
 - **Management is deterministic** — take profit at 50% of max credit, stop at 2× credit received, close before expiration to avoid pin risk. No LLM in this loop.
 
-Risk posture: **consistent core + small satellite.** Core book aims for modest positive P&L with defined risk and hard drawdown gates. A 10–15% satellite sleeve takes one higher-conviction directional spread when the signal is strong.
+Risk posture: **one consistent core book**, defined risk, hard drawdown gates. A directional "satellite" sleeve was specified but never implemented, and was removed on 29 Aug rather than left as dead code (issue #14) — the desk sells premium or it stands down.
 
 ---
 
