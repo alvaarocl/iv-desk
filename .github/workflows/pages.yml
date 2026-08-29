@@ -1,0 +1,46 @@
+name: Deploy dashboard
+
+# Publishes dashboard/ + the live data/ files to GitHub Pages. The desk loop commits data/
+# every 15 min, so each loop redeploys the dashboard with fresh numbers. Serving from Pages
+# (not raw.githubusercontent) means the page fetches ./data/* same-origin and works while the
+# repo is still private.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dashboard/**"
+      - "data/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          mkdir -p _site/data
+          cp dashboard/index.html _site/index.html
+          # Only the two files the dashboard reads — never the whole repo.
+          [ -f data/equity.csv ] && cp data/equity.csv _site/data/ || true
+          [ -f data/journal.jsonl ] && cp data/journal.jsonl _site/data/ || true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
