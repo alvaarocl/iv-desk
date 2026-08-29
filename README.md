@@ -13,6 +13,10 @@ It does not trade price. It trades the **volatility risk premium**, gated by **d
 | [`docs/CONCEPT.md`](docs/CONCEPT.md) | **Plain-language** explanation — what it does, why it wins, alternatives we considered. Start here if you're not a trader. |
 | [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…). |
 | [`docs/STATUS.md`](docs/STATUS.md) | What works now, what's left, decisions locked vs open. |
+| [`docs/AUDITORIA.md`](docs/AUDITORIA.md) | **Technical audit (29 Aug)** — every known defect with file:line, by severity. Keep in sync with the code. |
+| [`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md) | Verified contest rules, judging criteria, deadlines, and where our docs drifted. |
+| [`docs/VIABILIDAD.md`](docs/VIABILIDAD.md) | Is the idea actually viable? Positioning for the judges, risk posture, priorities. |
+| [`docs/API-ALPACA.md`](docs/API-ALPACA.md) | Hard-won Alpaca API / CLI / feed conventions. **Read before touching order code.** |
 | [`docs/strategy-spec.md`](docs/strategy-spec.md) | The precise strategy — signal maths, strike selection, every risk gate. |
 | [`docs/game-plan.html`](docs/game-plan.html) | The strategy + 7-day plan as a designed one-pager (open in a browser). |
 | [`PLAN.md`](PLAN.md) | Day-by-day task checklist. |

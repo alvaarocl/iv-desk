@@ -32,6 +32,10 @@ Everything runs on Alpaca's **paper** environment. No real money.
 | `docs/CONCEPT.md` | **Start here.** Plain-language: what it does, why it wins, alternatives we considered |
 | `docs/GLOSSARY.md` | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…) |
 | `docs/STATUS.md` | Current build state — what works, what's left, decisions locked vs open |
+| `docs/AUDITORIA.md` | **Technical audit** — every known defect with file:line, by severity. Update it in the same PR that fixes the code |
+| `docs/REGLAS-HACKATHON.md` | Verified contest rules + judging criteria. Check before claiming anything in the write-up |
+| `docs/VIABILIDAD.md` | Viability judgement, positioning, and the priority order for the remaining work |
+| `docs/API-ALPACA.md` | Alpaca API/CLI/feed conventions — **mleg limit_price is signed**. Read before touching order code |
 | `docs/strategy-spec.md` | The precise strategy: signal maths, strike selection, every risk gate, trade management |
 | `docs/game-plan.html` | The team-facing strategy + 7-day plan, designed to read at a glance |
 | `docs/write-up.md` | Skeleton of the one-page submission write-up (fill on Day 6–7) |
