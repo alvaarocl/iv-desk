@@ -48,9 +48,15 @@ class Params:
     min_credit_frac: float = 0.20    # credit / width floor
     take_profit_frac: float = 0.50   # close at 50% of max credit
     stop_multiple: float = 2.0       # close at 2x credit received
-    risk_per_trade: float = 0.005    # fraction of NAV; ramps to 0.01-0.02
-    max_portfolio_risk: float = 0.10
-    max_positions: int = 6
+    # --- sizing: frequency over size (decision on #16, option c) --------------------------
+    # 4 sessions is a variance lottery; we do not try to win the P&L axis. But a flat
+    # $100k with zero trades scores 0 on P&L *and* leaves the other three axes (75%) with
+    # nothing to show. So: keep the per-trade risk small and FLAT (no Mon->Tue ramp), and
+    # be less selective — more small defined-risk trades => more debate transcripts, a
+    # textured equity curve, downside still capped by max_portfolio_risk.
+    risk_per_trade: float = 0.005    # fraction of NAV, held flat all week
+    max_portfolio_risk: float = 0.10 # hard ceiling on Sum(max_loss) of open positions
+    max_positions: int = 8           # was 6; let good days accumulate small positions
     max_net_delta: float = 0.30      # normalized to NAV/100k
     daily_loss_breaker: float = 0.03
     dd_throttle: float = 0.08

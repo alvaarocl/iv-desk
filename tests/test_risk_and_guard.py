@@ -39,7 +39,7 @@ def test_clean_trade_passes(params):
     [
         (dict(max_loss=3_000.0), {}, "per-trade"),
         (dict(max_loss=400.0), dict(open_risk=9_900.0), "portfolio risk"),
-        ({}, dict(n_positions=6), "max concurrent"),
+        ({}, dict(n_positions=99), "max concurrent"),
         ({}, dict(day_pnl=-3_500.0), "circuit breaker"),
         ({}, dict(nav=85_000.0), "drawdown"),
     ],
