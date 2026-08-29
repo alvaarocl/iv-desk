@@ -69,7 +69,7 @@ class DeskClients:
     """The transports for one debate. Inject fakes in tests; `build()` reads the environment."""
 
     quant: list[tuple[str, SeatClient]] = field(default_factory=list)
-    anthropic: SeatClient | None = None
+    arguer: SeatClient | None = None
 
     @classmethod
     def build(cls) -> DeskClients:
@@ -80,12 +80,13 @@ class DeskClients:
                   if m.strip()][:seats.MAX_QUANT_MODELS]
         if not key or not models:
             raise seats.SeatError("featherless not configured (FEATHERLESS_API_KEY/MODELS)")
-        if not os.environ.get("ANTHROPIC_API_KEY", "").strip():
-            raise seats.SeatError("ANTHROPIC_API_KEY not set")
+        # Bull / Bear / Desk Head share one model. Defaults to the first ensemble member so a
+        # single FEATHERLESS_MODELS is enough to boot; override for a stronger arguer.
+        arguer_model = os.environ.get("FEATHERLESS_ARGUER_MODEL", "").strip() or models[0]
         return cls(
             quant=[(m, seats.FeatherlessSeatClient(model=m, base_url=base, api_key=key))
                    for m in models],
-            anthropic=seats.AnthropicSeatClient(),
+            arguer=seats.FeatherlessSeatClient(model=arguer_model, base_url=base, api_key=key),
         )
 
 
@@ -220,7 +221,7 @@ def review_open(
         except seats.SeatError as e:
             return _stand_down(f"debate_unavailable: {e}", cap, base_thesis, clock, started,
                                [{"seat": "system", "error": str(e)}])
-    if not clients.quant or clients.anthropic is None:
+    if not clients.quant or clients.arguer is None:
         return _stand_down("debate_unavailable: seats not wired", cap, base_thesis, clock,
                            started, transcript)
 
@@ -239,7 +240,7 @@ def review_open(
 
     # --- seats 2 & 3: Bull and Bear (parallel, must cite the signal) ----------------------
     a_timeout = clock.seat_timeout(ARGUER_SHARE)
-    bull, bear = _run_arguers(clients.anthropic, signal, selection, cap, a_timeout)
+    bull, bear = _run_arguers(clients.arguer, signal, selection, cap, a_timeout)
     transcript.extend([bull.to_record(), bear.to_record()])
     if not (bull.ok and bear.ok):
         bad = ", ".join(f"{a.role}: {a.error}" for a in (bull, bear) if not a.ok)
@@ -249,7 +250,7 @@ def review_open(
     # --- seat 4: Desk Head (final size, always <= cap; falsifiable thesis) ----------------
     d_timeout = clock.seat_timeout()
     head = _collect(_spawn(lambda: seats.desk_head(
-        clients.anthropic, signal, selection, cap, verdict, q_reason, ballots, bull, bear,
+        clients.arguer, signal, selection, cap, verdict, q_reason, ballots, bull, bear,
         d_timeout)), d_timeout, lambda err: DeskDecision(ok=False, error=err))
     transcript.append(head.to_record())
 

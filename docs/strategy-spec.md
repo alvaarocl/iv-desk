@@ -190,9 +190,43 @@ backtest has to answer.
 | Portfolio delta | Net |Δ| ≤ **0.30 × (NAV / 100k)** normalized units |
 | Daily circuit breaker | Day P&L (realized + unrealized) ≤ **−3% NAV** → close all, no new trades until next session |
 | Drawdown gate | DD from peak > 8% → halve sizing; > 12% → no new positions |
-| Event blackout | No new positions within 2h of scheduled high-impact macro (NFP 4 Sep, ISM, JOLTS, Fed speakers). Static calendar in `agent/calendar.py` |
+| Event blackout | **Asymmetric**: no new positions from **2h before** to **45min after** scheduled high-impact macro. Static calendar in `agent/calendar.py`. See §Blackout below |
 | Time-of-day | No new 0DTE opens after **14:00 ET** (gamma risk); manage only |
-| Assignment | Close any ITM short leg by **15:45 ET** on expiration day |
+| Assignment | Close the structure by **15:45 ET** on expiration day. Early assignment is **detected, not prevented** — see §Assignment below |
+
+### Blackout — asymmetric on purpose (issue #33)
+
+**2h before an event, 45 min after.** Not symmetric, and the asymmetry is the whole point.
+
+The risk this gate exists for lives **before** the release: implied vol is bid, the move is
+unknown, and selling a condor into an unresolved print is the wrong side of that trade. So the
+pre-window stays wide.
+
+**After** the print the opposite is true. The number is out, uncertainty collapses, and the IV
+crush is exactly what a premium seller wants. Sitting on our hands there means skipping the best
+entry of the day.
+
+The concrete cost of getting this wrong: a symmetric ±2h blocked **09:30–12:00 ET on 1 and 3 Sep**
+(ISM at 10:00) — the open of **two of the four scored sessions** — under a posture that explicitly
+chose frequency over size (issue #16). Asymmetry cuts that to 09:30–10:45 and recovers 75 minutes
+per session without taking on the risk the gate was built to avoid.
+
+Covered by `tests/test_calendar_blackout.py`. **The event dates themselves are still unverified**
+(issue #17).
+
+### Assignment — accepted, not mitigated (issue #25)
+
+SPY/QQQ/IWM options are American-style, so a short ITM leg can be assigned at any time, not just
+at expiration. We **accept** this risk for the competition window rather than engineer around it:
+
+- The classic trigger is the dividend, and **SPY's ex-dividend date falls outside the window**
+  (~18 Sep).
+- Our structures are 1–3 DTE and defined-risk, so the exposure window is short.
+
+What we do instead is **detect it and stop**: `execution.has_unexpected_equity()` spots any equity
+position that a defined-risk options book should never hold, and `desk.run_once` puts the desk into
+exits-only before computing any risk figure. If we are assigned, every NAV and delta number the
+desk would otherwise compute is wrong — so the correct response is to stop, not to adapt.
 
 ## Trade management (`agent/execution.py`) — no LLM
 

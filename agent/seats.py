@@ -1,14 +1,20 @@
 """The seats at the desk — the only place in the repo where an LLM is called.
 
-Four personas, two providers:
+Four personas, one provider: **Featherless**. The paid-API seats were dropped on 30 Aug so the
+desk costs nothing beyond the $25 `ALPACA26` coupon (issue #31).
 
 * **Quant** — an ensemble of open models served by Featherless (OpenAI-compatible endpoint).
   Each model gets the same ballot and votes independently; `consensus()` needs a strict
   majority or the seat abstains.
-* **Bull / Bear** — Anthropic (`claude-sonnet-5`). Argue the direction of the underlying and
-  are *required* to cite concrete `Signal` fields; an argument that cites nothing (or cites
-  invented fields) is discarded as unusable, not accepted at face value.
-* **Desk Head** — Anthropic. Picks the final size and writes a falsifiable prediction.
+* **Bull / Bear** — one open model (`FEATHERLESS_ARGUER_MODEL`, defaulting to the first
+  ensemble member). Argue the direction of the underlying and are *required* to cite concrete
+  `Signal` fields; an argument that cites nothing (or cites invented fields) is discarded as
+  unusable, not accepted at face value.
+* **Desk Head** — the same arguer model. Picks the final size and writes a falsifiable
+  prediction.
+
+One provider means one failure mode: if Featherless is down every seat abstains and the desk
+stands down. `DESK_DEBATE=off` is the deliberate escape hatch (see `debate.py`).
 
 Design rules that hold for every seat in this module:
 
@@ -26,14 +32,9 @@ Design rules that hold for every seat in this module:
 from __future__ import annotations
 
 import json
-import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
-
-# Bull / Bear / Desk Head. Note: `claude-sonnet-5` rejects `temperature`/`top_p`/`top_k`
-# with a 400 — determinism is bought with the prompt, not with sampling params.
-ANTHROPIC_MODEL = os.environ.get("DESK_DEBATE_ANTHROPIC_MODEL", "claude-sonnet-5")
 
 MAX_QUANT_MODELS = 3          # keeps the $25 Featherless coupon bounded
 QUANT_MAX_TOKENS = 400
@@ -58,41 +59,8 @@ class SeatClient(Protocol):
 # --------------------------------------------------------------------------- transports
 
 @dataclass
-class AnthropicSeatClient:
-    """Bull / Bear / Desk Head. Lazy import so the module stays importable without the SDK."""
-
-    model: str = ANTHROPIC_MODEL
-    api_key: str | None = None
-    effort: str = "low"           # output_config.effort — cost lever, GA on claude-sonnet-5
-    max_retries: int = 1
-    _client: Any = field(default=None, repr=False)
-
-    def complete(self, *, system: str, user: str, max_tokens: int, timeout: float) -> str:
-        try:
-            import anthropic
-        except ImportError as e:                                  # pragma: no cover
-            raise SeatError(f"anthropic sdk unavailable: {e}") from e
-        if self._client is None:
-            key = self.api_key or os.environ.get("ANTHROPIC_API_KEY", "")
-            if not key:
-                raise SeatError("ANTHROPIC_API_KEY not set")
-            self._client = anthropic.Anthropic(api_key=key, max_retries=self.max_retries)
-        try:
-            msg = self._client.with_options(timeout=timeout).messages.create(
-                model=self.model,
-                max_tokens=max_tokens,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-                output_config={"effort": self.effort},
-            )
-        except Exception as e:  # every transport error becomes exactly one abstention
-            raise SeatError(f"{self.model}: {type(e).__name__}: {e}") from e
-        return "".join(b.text for b in msg.content if getattr(b, "type", "") == "text")
-
-
-@dataclass
 class FeatherlessSeatClient:
-    """One member of the Quant ensemble. Featherless speaks the OpenAI chat-completions API."""
+    """Any seat on the desk. Featherless speaks the OpenAI chat-completions API."""
 
     model: str
     base_url: str

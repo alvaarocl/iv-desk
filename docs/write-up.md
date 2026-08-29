@@ -1,129 +1,151 @@
 # IV Desk — One-Page Write-Up
 
-> **Nota para nosotros (borrar antes de entregar).**
->
-> **Regla: esto se escribe DESDE EL CÓDIGO, no desde el plan. Si el jueves algo no está construido,
-> no aparece aquí.** Los jueces son **de Alpaca**: van a abrir el repo buscando exactamente las
-> integraciones que afirmemos. Una promesa que no se puede verificar abriendo un fichero hunde el eje
-> de Technology Implementation, que es donde más apretamos.
->
-> Cada afirmación de abajo lleva entre paréntesis el fichero que la demuestra. **Antes de entregar:
-> abrir cada uno de esos ficheros y comprobarlo.** Todo lo marcado `[[EN CONSTRUCCIÓN: …]]` se
-> **reescribe con lo que exista** o **se borra entero** — no se entrega en presente. Las cifras van
-> entre `[ ]` y se rellenan el jueves 3 después del cierre. Idioma de entrega: **inglés**.
-> Issues relacionados: #18 (este doc) · #4 (CLI) · #13 (capa LLM) · #20 (MCP).
+> Every sentence here can be checked by opening the file named in parentheses. Nothing is described
+> in the present tense unless it exists in the repo. The only blanks are the live-window numbers,
+> marked `[Results: fill Thu 3 Sep after the close]`.
 
----
+**IV Desk is an autonomous options desk that sells the volatility risk premium — and documents every
+time it decides not to.**
 
 ## What it is
 
-IV Desk is an autonomous options trading desk. It does not trade price direction: it harvests the
-**volatility risk premium** (VRP) on index ETFs — SPY, QQQ, IWM — gated by **dealer gamma
-positioning** (GEX), and it trades defined-risk structures (iron condors and credit verticals,
-1–3 DTE) as single 4-leg `order_class: mleg` orders.
+It does not predict direction. It harvests the gap between implied vol and a forecast of realized
+vol on SPY, QQQ and IWM (`agent/config.py` → `UNIVERSE`), gated by dealer gamma positioning (GEX),
+and expresses it only as defined-risk structures — iron condors and credit verticals at 1–3 DTE
+(`agent/signal.py` → `pick_expiration`) submitted as a **single 4-leg `order_class: mleg` order**
+(`agent/broker.py` → `submit_mleg`). It runs unattended on a dedicated Alpaca **paper** account
+every 15 minutes during RTH from a GitHub Actions cron (`.github/workflows/desk.yml`).
 
-It runs unattended on a dedicated Alpaca **paper** account on a 15-minute cron during regular trading
-hours, and every decision it makes — including every decision **not** to trade — is written to an
-append-only journal.
+## We measured before we built
 
----
+Three probes against the **live** market on 28 Aug, output committed (`probes/RESULTS.md`), four
+design decisions straight out of them:
 
-## The Day-0 probes: we measured before we built
-
-Before writing the engine we ran three probes against the **live** market on 28 Aug and let the
-results dictate the design (`probes/RESULTS.md`):
-
-- **Greeks and IV come from Alpaca's option snapshots** → we ship no Black-Scholes engine at all.
-- **OPRA is a paid tier we don't have; the free `indicative` feed measured ~2 s fresh** → good enough
-  for 0–4 DTE credit spreads, so the whole design targets short-dated structures.
-- **Open interest lives only on `/v2/options/contracts`, dated T-2** → GEX is explicitly a *regime*
-  signal, never a precision input.
-- **A 4-leg condor is accepted as one `mleg` order on paper at options level 3** → no
-  paired-verticals fallback needed.
-
-Every one of those findings is a design decision we can point at, not an assumption.
-
----
+- Greeks and IV come from Alpaca's snapshots → **we ship no Black-Scholes engine** (`agent/marketdata.py`).
+- OPRA is a paid tier we don't have; the free `indicative` feed measured **~2 s fresh** → the whole
+  design targets 1–3 DTE.
+- Open interest isn't on the snapshot — it's on `/v2/options/contracts`, dated T-2 → GEX is a
+  *regime* signal with a dead zone, never a precision input (`agent/signal.py` → `gex_state`).
+- A 4-leg condor was accepted as one `mleg` order at options level 3 → no paired-verticals fallback
+  was built.
 
 ## Architecture: the LLM never touches the money path
 
-The split is the point, and it is enforced structurally:
-
-| Layer | Implementation | Where to verify |
+| Layer | Deterministic? | Verify in |
 |---|---|---|
-| **Signal** — RV forecast (Yang-Zhang + EWMA) vs ATM implied vol → VRP; GEX from chain open interest; regime classifier; skew | Pure Python, deterministic | `agent/signal.py` |
-| **Structure & sizing** — strike selection at a target short delta, contracts sized so max loss ≤ risk budget | Pure Python, deterministic | `agent/execution.py` |
-| **Risk Officer** — every gate, **no discretion**. `evaluate()` is the single entry point and returns `(ok, reason)` | Pure Python, **no LLM ever calls into it** | `agent/risk.py` |
-| **Trade management** — take profit at 50% of credit, stop at 2× credit, close before expiry | Pure Python, deterministic | `agent/execution.py` → `manage_exits()` |
-| **Journal** — append-only JSONL of every signal, rejection, open and exit | — | `agent/journal.py` → `data/journal.jsonl` |
-| **The desk (LLM)** — named seats that argue an open decision | **[[EN CONSTRUCCIÓN — issue #13. Describir aquí SOLO los asientos que existan el jueves y con qué modelos corren de verdad. Si no existe, borrar esta fila entera.]]** | |
+| **Signal** — Yang-Zhang + EWMA RV forecast vs ATM IV → VRP *ratio*; normalized GEX; ADX/EMA regime; skew | Yes | `agent/signal.py` |
+| **Structure & sizing** — strikes at a target short delta behind liquidity gates; contracts sized so max loss ≤ risk budget | Yes | `agent/execution.py` → `select_condor`, `size` |
+| **Risk Officer** — every gate, **no discretion, no LLM path into it**; `evaluate()` returns `(ok, reason)` | Yes | `agent/risk.py` |
+| **Trade management** — 50% of credit take-profit, 2× credit stop, close on expiry day | Yes | `agent/execution.py` → `manage_exits` |
+| **The desk (LLM)** — four seats arguing **one** thing: whether to open a trade already approved | No, and bounded | `agent/debate.py` |
+| **Journal** — append-only JSONL of every signal, rejection, debate, open and exit | Yes | `agent/journal.py` |
 
-Anything that can lose money — exits, gates, sizing — is deterministic Python. The LLM layer can
-propose and argue; it **cannot** widen a risk limit, resize a trade, or veto an exit.
+The debate runs **only on an opening decision**, after the deterministic layers are done
+(`agent/desk.py` → `_consider`). **The LLM cannot increase risk by construction, not by prompt:**
+`review_open()` receives `cap_contracts`, the size the Risk Officer already approved, and the final
+size is one line (`agent/debate.py`):
 
-This mirrors, almost point for point, the architecture Alpaca itself publishes as good practice in
-[*Building a Multi-Agent AI Trading System on Alpaca*](https://alpaca.markets/learn/building-a-multi-agent-ai-trading-system-on-alpaca):
-specialised agents instead of one generalist prompt, a critic that validates against predefined
-rules, a **deterministic Python risk guard with no LLM**, and position monitoring every 15 minutes.
-We converged on it independently and then found their article confirming it.
+```python
+contracts = max(0, min(int(head.contracts), cap))
+```
 
----
+It can trim, veto, or do nothing. Every failure mode — outage, timeout, truncated JSON, a split
+ensemble — resolves to `approved=False` with the reason recorded; there is no path where garbage
+means "yes" (`agent/seats.py`, design rule 2).
 
-## Risk gates (`agent/risk.py`)
+This mirrors, almost point for point, the architecture Alpaca publishes as good practice in
+[*Building a Multi-Agent AI Trading System on Alpaca*](https://alpaca.markets/learn/building-a-multi-agent-ai-trading-system-on-alpaca)
+(cited in `docs/REGLAS-HACKATHON.md`): specialised agents over one generalist prompt, a critic
+validating against predefined rules, a **deterministic Python risk guard with no LLM**, and
+monitoring every 15 minutes. We converged on it independently, then found the article.
 
-Per-trade max loss ≤ [X]% NAV · portfolio open risk ≤ 10% NAV · ≤ [N] concurrent positions · net
-portfolio delta band · −3% daily-loss circuit breaker · drawdown throttle at 8% (half size) and hard
-halt at 12% (no new risk) · macro-event blackout ±2 h (`agent/calendar.py`) · no new 0DTE after
-14:00 ET · early-assignment detection: any unexpected equity position puts the desk into exits-only.
+## The desk: four seats, open models, all on Featherless
 
-Each gate returns a **reason string**, and that string is what lands in the journal. That is what
-makes the log falsifiable rather than decorative.
+One provider, one transport class, no proprietary model in the loop (`agent/seats.py` →
+`FeatherlessSeatClient`; `agent/debate.py` → `DeskClients.build`). Each seat is defined by what
+makes its output *unusable*:
 
----
+- **Quant** — up to 3 open models vote independently on the same ballot. Consensus needs a strict
+  majority **of the models dispatched**, not of those that answered, *and* agreement on the
+  structure the deterministic layer picked (`agent/seats.py` → `consensus`).
+- **Bull / Bear** — must anchor claims to numeric `Signal` fields and name them; fewer than two
+  *real* field names and the argument is discarded (`agent/seats.py` → `argue`).
+- **Desk Head** — final size (≤ cap) plus a **falsifiable prediction**: a closing range on the
+  expiration date. Inverted, non-numeric or implausible ranges are rejected, so the trade doesn't
+  happen (`agent/seats.py` → `_validate_prediction`).
+
+The whole debate carries a 90 s wall-clock budget with per-seat deadlines, because the tick is 15
+minutes. `DESK_DEBATE=off` is the kill switch; the default is `required` — no working LLM layer
+means no new positions.
+
+## Risk gates (`agent/risk.py`, thresholds in `agent/config.py`)
+
+Per-trade max loss ≤ 0.5% NAV · portfolio open risk ≤ 10% NAV · ≤ 8 concurrent positions · net delta
+band ±0.30 of NAV · −3% daily-loss breaker · drawdown throttle to half size at 8%, hard halt at 12%
+· **asymmetric** macro-event blackout (2 h before a release, 45 min after) over a hand-verified
+calendar of the window's prints (`agent/calendar.py`) · no new 0DTE after 14:00 ET.
+
+That asymmetry shows how the desk reasons about its own gates: the risk is opening premium into an
+*unresolved* print, and it lives entirely before the release — afterwards IV crushes, which is the
+best entry of the day for a premium seller. The argument is written next to the constant.
+
+Two guards sit outside `evaluate()` so they hold even if it never runs: an **account guard** that
+refuses live mode against the wrong account and refuses to touch the competition account before the
+window opens, and **early-assignment detection** — any unexpected equity position forces exits-only
+(`agent/desk.py` → `_guard_account`, `_assignment_alert`).
 
 ## A falsifiable record, including the non-trades
 
-`data/journal.jsonl` is the deliverable we are proudest of. It records, every 15 minutes:
+Every tick appends to `data/journal.jsonl` (`agent/desk.py` → `run_once`, `_consider`):
 
-- the full signal per underlying (VRP, GEX sign, regime, chosen structure),
-- every `rejected` event **with the gate that rejected it**,
-- every open, with the strikes and a written thesis,
-- every exit, with the reason (`take_profit` / `stop` / `expiry_close`) and the realised P&L,
-- the equity curve (`data/equity.csv`).
+- `portfolio` — NAV, day P&L, open risk, positions, net delta, size multiplier, breaker state.
+- `signal`, **per underlying** — the full deterministic read *plus a `stand_down` field naming the
+  gate that blocked it*: `vrp`, `gex`, `trend` or `data` (`agent/signal.py`). A quiet desk is not a
+  silent one: the record says which gate said no, and with what numbers.
+- `rejected` — the Risk Officer's reason string whenever a proposed trade fails a gate.
+- `debate` — the **complete transcript**: every ballot, both arguments, the Desk Head's decision,
+  the cap, the final size, the elapsed clock (`agent/debate.py` → `DebateOutcome.to_record`) —
+  written whether it approved or stood down.
+- `opened` / `exit` — strikes, contracts, credit, max loss, thesis; then the exit reason
+  (`take_profit` / `stop` / `expiry_close`) and realised P&L, plus `data/equity.csv`.
 
-A desk that stands down before ISM with a documented reason is a better demonstration of autonomy
-than one that got three condors right. The journal is what lets a judge check that claim instead of
+A desk that stands down before an ISM print with a documented reason is a better demonstration of
+autonomy than one that got three condors right. The journal lets a judge check that instead of
 believing it.
-
----
 
 ## Alpaca stack usage
 
-- **Trading API** — account, clock, positions, orders, and 4-leg `order_class: mleg` condors.
-  **[[EN CONSTRUCCIÓN — issue #4: hoy `agent/broker.py` es REST con `httpx`. Las reglas exigen
-  Trading API + (MCP o CLI). Cuando la migración esté hecha, describir EXACTAMENTE qué comandos del
-  CLI de Alpaca ejecuta el loop y desde qué fichero. Si el jueves sigue siendo REST, decirlo así, sin
-  adornos.]]**
-- **Options market data** — chain snapshots with greeks + implied vol (`feed=indicative`) and
-  per-contract open interest from `/v2/options/contracts` (`agent/marketdata.py`).
-- **Paper only.** Dedicated competition account, $100,000 starting balance, first order Mon 31 Aug
-  09:30 ET, used for nothing before that. Account ID: **PA39HSCQE8S3**. Development and testing ran
-  on a separate paper account (`PA3TQHQKM5AD`) — disclosed in the README.
-- **[[MCP — issue #20. NO mencionarlo salvo que exista y se pueda abrir. Si no se construye, esta
-  línea se borra.]]**
+- **Trading API through the official CLI.** Every trading call in the production loop shells out to
+  `alpaca api METHOD /path` — account, clock, positions, orders, cancels, `/v2/options/contracts`,
+  and the `mleg` submission (`agent/broker.py` → `_cli`). The binary is pinned and version-verified
+  in CI (`.github/workflows/desk.yml`).
+- **`order_class: mleg`** — `limit_price` is **signed** (negative = credit), passed through verbatim;
+  `submit_mleg` refuses a zero price rather than guess. Orders are async, so the loop polls before
+  treating a position as open (`agent/execution.py` → `_await_fill`).
+- **Options market data over REST** (allowed for reads): chain snapshots with greeks and IV
+  (`feed=indicative`), per-contract open interest, SIP daily bars (`agent/marketdata.py`).
+- **Idempotent and self-healing.** `client_order_id` is deterministic per trade intent, so a re-run
+  cannot duplicate an order; every tick reconciles against Alpaca as the source of truth
+  (`agent/execution.py` → `_client_order_id`, `reconcile`).
+- **Paper only.** Competition account **PA39HSCQE8S3**, $100,000, first order Mon 31 Aug 09:30 ET,
+  used for nothing before that. Development ran on a separate paper account (`PA3TQHQKM5AD`),
+  disclosed in the README.
 
----
+## Engineering
 
-## Results — fill Thu 3 Sep after the close
+100 tests, no network and no API keys required: the four-seat debate runs end-to-end against
+injected transport doubles (`tests/test_debate.py`), strike selection and the exit manager against
+synthetic chains (`tests/test_execution.py`), and the gates and account guard directly
+(`tests/test_risk_and_guard.py`). Every tunable is one dataclass with the reasoning for each number
+written beside it (`agent/config.py`).
 
-Scoring window: Mon 31 Aug 09:30 ET → equity snapshot at Thu 3 Sep close. Four sessions.
+## Results — [Results: fill Thu 3 Sep after the close]
 
-- Sessions traded: [N] · trades closed: [N] · win rate [X]% · avg win $[X] · avg loss $[X].
-- Ending equity: $[X] · return [X]% · max drawdown [X]% · [N] circuit-breaker triggers.
-- Stand-downs: [N] sessions/loops with a documented `rejected` reason.
-- Incidents encountered and resolved live: [N] — see `docs/RUNBOOK.md`.
-- Prediction ledger: [X]/[N] theses resolved correct.
+Window: Mon 31 Aug 09:30 ET → equity snapshot at Thu 3 Sep close. Four sessions.
 
-## Links
+- Trades closed [N] · win rate [X]% · ending equity $[X] · return [X]% · max drawdown [X]%.
+- Documented stand-downs: [N], by gate (`vrp` / `gex` / `trend` / risk / desk veto).
+- Predictions made [N] · resolved correct [N] · circuit-breaker triggers [N].
+- Incidents resolved live: [N] — logged in `docs/RUNBOOK.md`.
 
-Repo: [URL] · Demo video: [URL] · **[[Dashboard — opcional (la UI no es obligatoria). Enlazar solo si existe.]]**
+**Repo:** [URL] · **Demo video:** [URL] · **Account:** PA39HSCQE8S3

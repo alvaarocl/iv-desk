@@ -81,7 +81,7 @@ uv run python -m agent.desk    # debe correr limpio en dry_run
 `.env` está en `.gitignore`. Las claves reales viven en:
 - el `.env` local de cada uno (cuenta de **testing** `PA3TQHQKM5AD`);
 - GitHub → **Settings → Secrets and variables → Actions** (cuenta de **competición** `PA39HSCQE8S3`):
-  `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `ANTHROPIC_API_KEY`, `FEATHERLESS_API_KEY`;
+  `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`, `FEATHERLESS_API_KEY`;
   y en **Variables**: `FEATHERLESS_MODELS`, `DESK_MODE`.
 
 ## Ficheros de datos

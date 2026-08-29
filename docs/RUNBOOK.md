@@ -22,7 +22,11 @@ expiración (=15:45 ET) · **22:00** cierre.
       comprobación manual de arriba.
 - [ ] Último run del cron es reciente y verde (Actions → *IV Desk loop*).
 - [ ] `data/journal.jsonl` y `data/equity.csv` limpios de la sesión de testing (o asumido y anotado).
-- [ ] `FEATHERLESS_MODELS` con 3 ids de modelo separados por comas (ver "La capa LLM" abajo).
+- [ ] **La mesa va 100% Featherless.** `FEATHERLESS_API_KEY` puesta y `FEATHERLESS_MODELS` con 3
+      ids de modelo separados por comas (ver "La capa LLM" abajo). No hay ningún otro proveedor de
+      LLM en el loop: los cuatro asientos salen de `FeatherlessSeatClient` (`agent/seats.py`).
+      Opcional: `FEATHERLESS_ARGUER_MODEL` para Bull/Bear/Desk Head; si no está, usan el primero de
+      `FEATHERLESS_MODELS`.
 - [ ] Los dos con el repo abierto y este documento a mano.
 
 ---
@@ -128,7 +132,10 @@ del jurado. Rellenar en el momento, no de memoria el viernes.
 
 ---
 
-## La capa LLM (la mesa)
+## La capa LLM (la mesa Featherless)
+
+Los cuatro asientos (Quant ×3, Bull, Bear, Desk Head) corren sobre **modelos abiertos servidos por
+Featherless**, endpoint compatible con OpenAI. Es el **único** proveedor de LLM del loop.
 
 **Antes del lunes:** `FEATHERLESS_MODELS` tiene que llevar **3 ids de modelo separados por comas**.
 Si está vacío, el Quant no alcanza consenso y **cada apertura se planta** con `debate` `approved:
@@ -138,7 +145,7 @@ false` en el journal. No es un fallo silencioso, pero se parece a "el desk no op
 
 | Situación | Acción |
 |---|---|
-| Featherless o Anthropic caídos, o el cupón agotado | `DESK_DEBATE=off` → el desk sigue operando con la decisión determinista |
+| Featherless caído, o el cupón agotado | `DESK_DEBATE=off` → el desk sigue operando con la decisión determinista |
 | Sospecha de que la mesa aprueba cosas raras | dejar `DESK_DEBATE=required` y revisar los eventos `debate` del journal |
 | Parar el desk entero | kill switch de arriba (`DESK_MODE=exits_only`) |
 

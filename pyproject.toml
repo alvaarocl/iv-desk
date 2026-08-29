@@ -7,12 +7,12 @@ dependencies = [
     "httpx>=0.27",            # market-data REST reads (marketdata.py)
     "numpy>=1.26",            # signal maths (signal.py)
     "python-dotenv>=1.0",     # .env loading
-    "anthropic>=0.40",        # LLM desk — Bull / Bear / Desk Head seats (issue #13, in progress)
-    "openai>=1.40",           # LLM desk — Featherless Quant ensemble (OpenAI-compatible endpoint)
+    "openai>=1.40",           # LLM desk — every seat runs on Featherless (OpenAI-compatible)
     "tzdata>=2024.1",         # ZoneInfo("America/New_York") — no system tz db on Windows / slim CI
 ]
 # Removed 2026-08-30 (issue #15): alpaca-py (order path is the Alpaca CLI, not the SDK),
-# pandas / scipy (signal.py uses numpy only), pydantic and rich (unused).
+# pandas / scipy (signal.py uses numpy only), pydantic and rich (unused), and the paid-LLM SDK —
+# the desk runs 100% on Featherless since #31, so there is no out-of-pocket spend.
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]

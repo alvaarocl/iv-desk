@@ -89,7 +89,9 @@ the exit manager has been verified on a real position.**
 - **GitHub Actions secrets** — the same names but for the **competition** account `PA39HSCQE8S3`.
   Set these Sunday; the live cron uses them from Mon 09:30 ET.
 - `FEATHERLESS_API_KEY` — redeem coupon `ALPACA26` at featherless.ai; powers the Quant ensemble
-- `ANTHROPIC_API_KEY` — the Bull / Bear / Desk Head seats
+- `FEATHERLESS_ARGUER_MODEL` — the Bull / Bear / Desk Head seats. Optional: defaults to the
+  first id in `FEATHERLESS_MODELS`. **The whole desk runs on Featherless** (issue #31) — there is
+  no second provider and no out-of-pocket spend.
 - Each Alpaca paper account has its **own** key pair — generate the UC3M keys from the dashboard
   after switching to that account.
 
