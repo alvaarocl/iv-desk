@@ -11,3 +11,5 @@ Refs/
 !data/.gitkeep
 backtest/cache/
 backtest/cache/
+video/node_modules/
+video/out/

@@ -13,7 +13,7 @@ Plataforma: lablab.ai. Reglas verificadas en [`REGLAS-HACKATHON.md`](REGLAS-HACK
 | 2 | Licencia MIT presente | ✅ | `LICENSE` en la raíz |
 | 3 | **Disclosure de trabajo pre-evento** en el README | ✅ | Sección "Pre-event work disclosure". Verificar que sigue siendo exacta el día 4 |
 | 4 | **ID de la cuenta de competición** | ✅ dato | `PA39HSCQE8S3` ("PAPER UC3M"). Va en el formulario de submission |
-| 5 | **Vídeo demo** (2–3 min) | ⬜ | Grabar martes 1, montar miércoles 2. Guion → abajo |
+| 5 | **Vídeo demo** (~2:52) | 🔶 | Proyecto Remotion en `video/`. v1 renderizada con datos del backtest. **Jueves:** editar `video/src/data.ts` (`RESULTS.mode = "live"`) + guion S6, `npm run render`, subir a YouTube no listado. Narración TTS: `video/NARRATION.md` |
 | 6 | **One-page write-up** | 🔶 | `docs/write-up.md` — reescribir desde el código el día 6 (issue #18). Números reales de la ventana |
 | 7 | **Deck / slides** | ⬜ | Miércoles 2. Cover image incluida |
 | 8 | **Descripción + tags + título** para lablab | ⬜ | Viernes 4 |
@@ -24,9 +24,20 @@ Leyenda: ✅ hecho · 🔶 en curso · ⬜ pendiente
 
 ---
 
-## Guion del vídeo (borrador)
+## Vídeo — Remotion, no screen-recordings
 
-El vídeo **no** vende el P&L (4 sesiones = lotería de varianza). Vende **el agente decidiendo solo**.
+El vídeo de la entrega es un **proyecto Remotion** (`video/`): motion graphics programáticas,
+renderizado **sin audio**. La narración va aparte: `video/NARRATION.md` (inglés) → text-to-speech →
+se compone bajo el vídeo. Siete escenas · ~2:52 · toda cifra sale de `backtest/RESULTS.md` o del
+transcript real del debate.
+
+El `docs/video-script.md` de Ángel (screen-recordings) queda como **B-roll opcional** — no es la
+entrega principal.
+
+El vídeo **no** vende el P&L (4 sesiones = lotería de varianza). Vende **el agente decidiendo solo**
+y el momento en que se niega a operar.
+
+<details><summary>Guion narrado por escena (ver <code>video/NARRATION.md</code> para timings)</summary>
 
 1. **0:00–0:20 — El problema.** "No predecimos la dirección del mercado. Vendemos seguro
    sobrevalorado, y solo cuando lo está." Una frase, sin jerga.
@@ -42,7 +53,7 @@ El vídeo **no** vende el P&L (4 sesiones = lotería de varianza). Vende **el ag
 4. **1:50–2:30 — Resultado.** La curva de equity de `PA39HSCQE8S3`, el ledger de predicciones
    (cuántas tesis resueltas correctas), el log de incidencias resueltas.
 
-Grabar clips **desde el lunes** — el jueves no hay tiempo.
+</details>
 
 ---
 

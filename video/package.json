@@ -1,0 +1,24 @@
+{
+  "name": "iv-desk-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "IV Desk — submission presentation video (Remotion). Silent render; TTS added separately.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render IVDesk out/iv-desk-presentation.mp4 --codec=h264 --muted",
+    "still": "remotion still IVDesk",
+    "typecheck": "tsc --noEmit",
+    "lint": "remotion lint src"
+  },
+  "dependencies": {
+    "@remotion/google-fonts": "4.0.518",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.518"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.518",
+    "@types/react": "19.2.2",
+    "typescript": "5.9.3"
+  }
+}
