@@ -92,7 +92,10 @@ def _spread_frac(snap: dict) -> float | None:
 
 
 def _liquid(sym: str, snap: dict, oi: dict[str, int], min_oi: int, max_spread: float) -> bool:
-    if oi.get(sym, 0) <= min_oi:
+    # Open interest is T-2 and not always present for every strike. When we have an OI table,
+    # enforce the floor; when it's absent entirely (backtest, or OI feed down), fall back to the
+    # spread test alone rather than rejecting every strike.
+    if oi and oi.get(sym, 0) <= min_oi:
         return False
     sf = _spread_frac(snap)
     return sf is not None and sf <= max_spread

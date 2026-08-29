@@ -3,10 +3,10 @@
   0. account guard      — refuse to run against the wrong paper account
   1. reconcile          — Alpaca is the source of truth: resolve pending orders, spot assignments
   2. exits              — manage_exits() on the open book (deterministic, no LLM)
-  3. portfolio gates    — daily breaker / drawdown / event blackout → if tripped, exits-only
+  3. portfolio gates    — daily breaker / drawdown / event blackout / assignment → exits-only
   4. signal per name    — build_signal() (deterministic)
-  5. open decision      — only if sell_premium and a slot is free: pick structure, size via
-                          Risk Officer, (debate hook), commit. dry_run logs without ordering.
+  5. open decision      — pick structure, size via Risk Officer, LLM desk debates (trim/veto
+                          only), commit. dry_run logs without ordering.
   6. journal + equity   — append everything to data/
 
 Stateless: rebuilds its view from the Alpaca account + data/trades.jsonl each run. Idempotent.
@@ -20,8 +20,9 @@ import traceback
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from . import broker, risk
+from . import broker, debate, risk
 from . import execution as ex
+from . import marketdata as md
 from . import signal as sg
 from .config import UNIVERSE, Params, desk_mode
 from .journal import append, record_equity
@@ -42,9 +43,65 @@ def _portfolio_state(params: Params) -> risk.PortfolioState:
     peak = _peak_nav(nav)
     return risk.PortfolioState(
         nav=nav, peak_nav=peak, open_risk=open_risk, n_positions=len(open_trades),
-        net_delta=0.0,  # TODO: aggregate leg deltas from chain
+        net_delta=_book_delta(open_trades, nav),
         day_pnl=nav - float(acct["last_equity"]),
     )
+
+
+def _legs_delta(legs: list[dict], contracts: int, chain: dict, spot: float) -> float | None:
+    """Delta-adjusted notional ($) of a set of legs. Short legs carry the opposite sign.
+
+    Returns None if any leg has no greeks — a missing quote must not silently read as flat.
+    """
+    total = 0.0
+    for leg in legs:
+        g = (chain.get(leg["symbol"]) or {}).get("greeks")
+        if not g:
+            return None
+        sign = -1.0 if leg["side"] == "sell" else 1.0
+        total += sign * g["delta"] * 100 * contracts * spot
+    return total
+
+
+def _book_delta(open_trades: list, nav: float) -> float:
+    """Net delta of the open book as a fraction of NAV. 0.30 == 30% of NAV directional."""
+    if not open_trades or nav <= 0:
+        return 0.0
+    chains: dict[tuple[str, str], dict] = {}
+    spots: dict[str, float] = {}
+    total = 0.0
+    for t in open_trades:
+        key = (t.underlying, t.expiration)
+        if key not in chains:
+            chains[key] = md.option_chain_snapshot(t.underlying, expiration_date=t.expiration)
+        if t.underlying not in spots:
+            spots[t.underlying] = md.stock_price(t.underlying)
+        d = _legs_delta(t.legs, t.contracts, chains[key], spots[t.underlying])
+        if d is None:
+            append({"event": "delta_unavailable", "trade": t.id})
+            continue
+        total += d
+    return total / nav
+
+
+def _assignment_alert() -> dict | None:
+    """SPY/QQQ/IWM options are American-style: a short ITM leg can be assigned early.
+
+    If that happens we are holding shares, not a condor, and every risk figure the desk
+    computes is wrong. Detect any unexpected equity position so the loop can stand down.
+    `ex.reconcile` also flags this — checking here as well keeps the stand-down independent
+    of reconcile succeeding.
+    """
+    try:
+        eq = [p for p in broker.positions() if p.get("asset_class") == "us_equity"]
+    except Exception:  # noqa: BLE001 - unknown assignment state must not stop exits
+        return None
+    if not eq:
+        return None
+    return {
+        "symbols": [p["symbol"] for p in eq],
+        "market_value": round(sum(float(p.get("market_value") or 0) for p in eq), 2),
+    }
 
 
 def _peak_nav(current: float) -> float:
@@ -92,7 +149,7 @@ def run_once() -> None:
         acct = _guard_account(order_mode, now)
         append({"ts": stamp, "event": "account", "account": acct.get("account_number"),
                 "mode": mode, "equity": acct.get("equity")})
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - journal the reason, then re-raise
         append({"ts": stamp, "event": "fatal", "stage": "account_guard", "error": str(exc)})
         raise
 
@@ -109,13 +166,11 @@ def run_once() -> None:
         append({"ts": stamp, "event": "error", "stage": "reconcile", "error": str(exc),
                 "trace": traceback.format_exc(limit=3)})
 
-    # An assignment leaves real shares in the account; stop opening anything until a human looks.
-    try:
-        assigned = ex.has_unexpected_equity()
-    except Exception:  # noqa: BLE001 - unknown assignment state must not stop exits
-        assigned = False
+    # An early assignment leaves real shares in the account; still run exits on whatever option
+    # legs remain, but open nothing new until a human looks.
+    assigned = _assignment_alert()
     if assigned:
-        append({"ts": stamp, "event": "exits_only", "reason": "unexpected_equity_position"})
+        append({"ts": stamp, "event": "exits_only", "reason": "early_assignment", **assigned})
 
     # 2. exits
     try:
@@ -131,10 +186,11 @@ def run_once() -> None:
     mult = risk.size_multiplier(pf, params)
     breaker = pf.day_pnl <= -params.daily_loss_breaker * pf.nav
     append({"ts": stamp, "event": "portfolio", "nav": pf.nav, "day_pnl": round(pf.day_pnl, 2),
-            "open_risk": pf.open_risk, "n_pos": pf.n_positions, "size_mult": mult, "breaker": breaker})
+            "open_risk": pf.open_risk, "n_pos": pf.n_positions, "net_delta": round(pf.net_delta, 3),
+            "size_mult": mult, "breaker": breaker})
     if exits_only or breaker or mult == 0.0 or assigned:
         reason = ("kill_switch" if exits_only else "breaker" if breaker
-                  else "drawdown_halt" if mult == 0.0 else "assignment")
+                  else "drawdown_halt" if mult == 0.0 else "early_assignment")
         append({"ts": stamp, "event": "exits_only", "reason": reason})
         return
 
@@ -156,16 +212,22 @@ def _consider(u: str, params: Params, pf, mult: float, mode: str,
 
     if not s.sell_premium or pf.n_positions >= params.max_positions:
         return
-    sel = _pick(s, data, params)
+    sel = _pick(s, params, data.get("oi"))
     if not sel:
         append({"ts": stamp, "event": "no_structure", "underlying": u,
                 "reason": "no liquid strikes at target delta/width"})
         return
+
     n = ex.size(sel["width"], sel["credit"], pf.nav, params.risk_per_trade, mult)
     cr_frac = sel["credit"] / sel["width"] if sel["width"] else 0
+    leg_delta = _legs_delta(sel["legs"], n, s.chain, s.spot)
+    if leg_delta is None:
+        append({"ts": stamp, "event": "rejected", "underlying": u, "reason": "missing greeks"})
+        return
     proposed = risk.ProposedTrade(
         underlying=u, structure=s.structure, max_loss=(sel["width"] - sel["credit"]) * 100 * n,
-        net_delta=0.0, is_0dte=s.expiration == now.strftime("%Y-%m-%d"), is_satellite=False,
+        net_delta=leg_delta / pf.nav,
+        is_0dte=s.expiration == now.strftime("%Y-%m-%d"), is_satellite=False,
     )
     ok, why = risk.evaluate(proposed, pf, params, now)
     if not (ok and n >= 1 and cr_frac >= params.min_credit_frac):
@@ -173,8 +235,21 @@ def _consider(u: str, params: Params, pf, mult: float, mode: str,
                 "size": n, "credit_frac": round(cr_frac, 3)})
         return
 
-    thesis = f"{u} stays inside {sel['strikes']} through {s.expiration}: {s.notes}"
-    # TODO: debate(s, sel) → may veto / adjust before commit
+    base_thesis = f"{u} stays inside {sel['strikes']} through {s.expiration}: {s.notes}"
+
+    # The LLM desk debates. `n` is the ceiling risk.evaluate() already approved: the desk can
+    # only trim or veto, never widen. See agent/debate.py.
+    d = debate.review_open(s, sel, n, base_thesis)
+    append({"ts": stamp, "event": "debate", "underlying": u, **d.to_record()})
+    if not d.approved:
+        return
+    n, thesis = d.contracts, d.thesis
+    if n < 1:
+        return
+    # The Desk Head may have trimmed the size — max_loss must follow, or the book over-reports
+    # its own risk and blocks later trades.
+    proposed.max_loss = (sel["width"] - sel["credit"]) * 100 * n
+
     t = ex.open_trade(s, sel, n, thesis, mode)
     pf.n_positions += 1
     pf.open_risk += proposed.max_loss
@@ -184,9 +259,9 @@ def _consider(u: str, params: Params, pf, mult: float, mode: str,
             "max_loss": round(proposed.max_loss, 0), "strikes": sel["strikes"], "thesis": thesis})
 
 
-def _pick(s: sg.Signal, data: dict, params: Params) -> dict | None:
+def _pick(s: sg.Signal, params: Params, oi: dict | None = None) -> dict | None:
     w = params.width_iwm if s.underlying == "IWM" else params.width_spy
-    oi = data.get("oi", {})
+    oi = oi or {}
     if s.structure == "iron_condor":
         return ex.select_condor(s.chain, params.short_delta, w, oi, params)
     if s.structure == "put_credit_spread":

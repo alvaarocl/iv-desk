@@ -1,7 +1,10 @@
 # CLAUDE.md — IV Desk
 
 You are working on **IV Desk**, an entry for the **Alpaca AI Trading Agents Hackathon**
-(lablab.ai × Alpaca, 28 Aug – 4 Sep 2026, $6,300 prize pool).
+(lablab.ai × Alpaca, 28 Aug – 4 Sep 2026, **$5,000 prize pool** — 1st $2,500 / 2nd $1,500 /
+3rd $1,000; some sources quote $6,000 counting two separate $500 social prizes. Verified 29 Aug
+against the public event listing — see [`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md).
+Do **not** print any other figure in the write-up or in a social post).
 
 If someone asks "what is this project about?", give them the plain-language explanation from
 [`docs/CONCEPT.md`](docs/CONCEPT.md) and point them at [`docs/GLOSSARY.md`](docs/GLOSSARY.md) for any
@@ -19,7 +22,9 @@ favour it (**dealer gamma** positive). It trades defined-risk structures (mostly
 close before expiry), and enforces hard risk gates (per-trade risk cap, daily circuit breaker,
 drawdown throttle, macro-event blackout). On top of the deterministic engine sits an **LLM "desk"** of
 named agents (Quant / Bull / Bear / Desk Head) that debate each new position and write a falsifiable
-thesis, all shown on a **live public dashboard**.
+thesis — logged to a falsifiable public journal (`data/journal.jsonl`), and, *if there is time*, shown
+on a live dashboard (the LLM desk is not built yet; the dashboard is optional — the rules say no UI is
+required).
 
 Everything runs on Alpaca's **paper** environment. No real money.
 
@@ -32,9 +37,15 @@ Everything runs on Alpaca's **paper** environment. No real money.
 | `docs/CONCEPT.md` | **Start here.** Plain-language: what it does, why it wins, alternatives we considered |
 | `docs/GLOSSARY.md` | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…) |
 | `docs/STATUS.md` | Current build state — what works, what's left, decisions locked vs open |
+| `docs/AUDITORIA.md` | **Technical audit** — every known defect with file:line, by severity. Update it in the same PR that fixes the code |
+| `docs/REGLAS-HACKATHON.md` | Verified contest rules + judging criteria. Check before claiming anything in the write-up |
+| `docs/CALENDARIO.md` | **Every deadline in one place**, in CEST *and* ET. Check before reasoning about any time |
+| `docs/RUNBOOK.md` | **Live-session runbook** — startup checklist, what to watch each loop, kill switch, incident tree |
+| `docs/VIABILIDAD.md` | Viability judgement, positioning, and the priority order for the remaining work |
+| `docs/API-ALPACA.md` | Alpaca API/CLI/feed conventions — **mleg limit_price is signed**. Read before touching order code |
 | `docs/strategy-spec.md` | The precise strategy: signal maths, strike selection, every risk gate, trade management |
 | `docs/game-plan.html` | The team-facing strategy + 7-day plan, designed to read at a glance |
-| `docs/write-up.md` | Skeleton of the one-page submission write-up (fill on Day 6–7) |
+| `docs/write-up.md` | The one-page submission write-up. **Written from the code, never from the plan** — anything not built by Thursday does not appear in it |
 | `PLAN.md` | Day-by-day task checklist with a cut-list |
 | `probes/` | Day-0 API de-risking scripts + `RESULTS.md` (findings that locked our design decisions) |
 | `agent/` | The trading engine (see below) |
@@ -47,13 +58,13 @@ Everything runs on Alpaca's **paper** environment. No real money.
 |---|---|---|
 | `broker.py` | Trading API client (account, orders, `mleg`, positions, cancel) | ⚠️ works as REST; **migrate to Alpaca CLI shell-outs** (see decisions) |
 | `marketdata.py` | Option chain snapshots (greeks + IV), option contracts (open interest), stock bars | ✅ tested live |
-| `signal.py` | Deterministic signal: RV forecast, VRP, GEX, regime, skew → `Signal` object | ✅ runs; needs calibration |
+| `signal.py` | Deterministic signal: RV forecast, VRP **ratio**, normalized GEX, regime, skew, `stand_down` reason → `Signal` | ✅ runs; **thresholds provisional** pending the backtest |
 | `execution.py` | Strike selection (condor + vertical), sizing, deterministic exit manager, trade log | ✅ runs; exit manager untested on a real position |
 | `risk.py` | The Risk Officer — every gate, no discretion. `evaluate()` is the single entry point | ✅ done |
 | `calendar.py` | Static macro-event calendar for the blackout gate (NFP, ISM, etc.) | ✅ done; verify dates |
 | `desk.py` | Main loop: exits → gates → signal per name → open decision → journal | ✅ dry-run works |
 | `journal.py` | Append-only decision log (`data/journal.jsonl`) + equity curve + prediction ledger | ✅ done |
-| LLM desk (Quant ensemble / Bull / Bear / Desk Head) | The debate layer on top of the signal | ❌ **not built** |
+| `seats.py` / `debate.py` | LLM desk: Quant ensemble / Bull / Bear / Desk Head, only on open decisions | 🚧 built 29 Aug, **not yet wired into `desk.py`** |
 
 ---
 
@@ -98,16 +109,29 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
   market-data reads only. *(changed 29 Aug after Alpaca's official guidelines; `agent/broker.py` still
   needs to be migrated from REST to CLI shell-outs.)*
 - **Universe:** SPY, QQQ, IWM. All have daily expirations through the competition window.
-- **Risk posture:** consistent core book + a small (≤15% of risk budget) directional satellite sleeve.
-- **Competition trades use expirations ≤ 3 Sep** — the equity snapshot is EOD Thursday 3 Sep.
+- **Risk posture:** a single consistent core book. The directional satellite sleeve was removed on
+  29 Aug (issue #14) — it was never implemented and `satellite_frac` was never read.
+- **Competition trades use expirations ≤ 3 Sep** — the equity snapshot is EOD Thursday 3 Sep
+  (pending the Discord confirmation above).
 - **Accounts:** testing = "Paper Trading" `PA3TQHQKM5AD` (has cancelled probe orders — all dev/testing
   runs here). Competition = "PAPER UC3M" `PA39HSCQE8S3` — untouched, first order Mon 31 Aug 09:30 ET,
   its keys live only in GitHub Actions secrets.
+
+### Judging criteria — there are FOUR, not five
+
+**P&L Performance · Technology Implementation · Creativity & Originality · Presentation & Execution.**
+
+**Social Engagement is a separate prize, not an axis of the rubric.** So P&L is worth **~25%, not
+~20%** — which is why "we concede the P&L axis" is not a free move. See
+[`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md) and [`docs/VIABILIDAD.md`](docs/VIABILIDAD.md).
 
 ### Official Alpaca rules that shape the work (received 29 Aug)
 
 - **P&L scoring window: Mon 31 Aug 09:30 ET → total-equity snapshot EOD Thu 3 Sep.** Four sessions
   count (31 Aug, 1–3 Sep). Friday 4 Sep and the NFP that morning do **not** count for P&L.
+  ⚠️ **Pending confirmation in Discord** — this comes from the private 29 Aug guidelines and is not
+  publicly verifiable. Our whole ≤ 3 Sep expiration policy hangs on it. Don't change it without
+  confirming; ask. → issue #19
 - Judged on **total account equity** (not cash) + creativity, autonomy, robustness of the workflow.
 - **A user interface is NOT required** — "primarily evaluating the autonomous agent workflow and its
   trading performance". The dashboard is optional; build it only if the agent + write-up are done.
@@ -117,27 +141,34 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 
 ### Open questions (need a human call)
 
-- **Regime-adaptive vs strict discipline.** As of 29 Aug the tape is low-vol (ATM IV 6–10%), so the pure
-  VRP signal produces zero trades. Leaning toward adaptive: sell condors when VRP is rich, buy cheap
-  directional debit spreads when gamma is negative and the tape trends. Keeps discipline, guarantees a
-  P&L track record (which is a judged axis). Final call + parameter calibration happens over the
-  weekend against Friday's closing chain, ready for Mon 31 Aug 09:30 ET.
+- ~~**Regime-adaptive vs strict discipline.**~~ **Decided 29 Aug (issue #12): stand down in a trending
+  tape** rather than fade it, behind `params.fade_trend` (set `True` to restore the old behaviour).
+  Fading a trend with short premium is how short-vol books die, and it was gated only by a noisy
+  GEX sign.
+- **Still open: parameter calibration.** `vrp_ratio_min`, `gex_min` and the
+  `(width, short_delta, min_credit_frac)` trio are **provisional** until the backtest (issue #5)
+  runs against real chain data. They currently encode a judgement, not a measurement.
 
 ---
 
 ## Working style for this repo
 
-- Small team (2), 7 days. Branch per lane (`lane/a-signal`, `lane/b-dashboard`, `lane/c-content`), PR to `main`.
+- Small team (2), 7 days. Branch per lane — `lane/ejecucion` (Álvaro: `broker.py`, `execution.py`,
+  workflow, tests), `lane/senal` (Ángel: `signal.py`, `config.py`, backtest), `lane/entrega` (docs,
+  LLM layer) — PR to `main`. **Lanes own disjoint files on purpose**: don't edit another lane's files.
+  Full cycle in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 - `main` must always run clean in `dry_run` — the scheduled loop trades from it.
 - `data/journal.jsonl`, `data/equity.csv`, `data/trades.jsonl` are written by the loop and committed by
   the workflow. Don't hand-edit. On a merge conflict there, take `origin/main`.
 - Never commit `.env` or keys.
 - The hackathon requires a **public** repo at submission — flip visibility to public on 4 Sep, not before.
+- During the live sessions (Mon–Thu, 15:30–22:00 CEST) [`docs/RUNBOOK.md`](docs/RUNBOOK.md) rules: no
+  code deploys mid-session unless the desk is losing money to a bug.
 
 ## What matters for judging (so you prioritise correctly)
 
-Total account equity at the Thu 3 Sep snapshot + the creativity, autonomy and robustness of the
-autonomous agent workflow. Winners are **not** picked on P&L alone, and **no UI is required**. So the
+Four axes (above), of which P&L is ~25%: total account equity at the Thu 3 Sep snapshot, plus the
+creativity, autonomy and robustness of the autonomous agent workflow. Winners are **not** picked on P&L alone, and **no UI is required**. So the
 priority order is: (1) a fresh account trading live and reliably from Mon 09:30 ET, (2) a workflow
 that is genuinely autonomous and robust (the LLM desk + risk gates + CLI execution), (3) the write-up
 and demo video, (4) social posts, (5) the dashboard only if everything else is done. See

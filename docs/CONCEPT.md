@@ -48,13 +48,20 @@ la que probablemente habrá (**RV**), y leemos cómo está posicionado el dinero
 (**GEX**). Casi nadie de los 2.000 sabe qué es el gamma de los dealers. **Ahí está nuestra ventaja
 real.**
 
-### 2. La fiabilidad — de verdad opera los 6 días
-El hackathon exige una **cuenta nueva**, con **$100.000**, y que se pueda **verificar el P&L** de
-toda la semana. Eso descalifica a la mayoría: mucha gente monta algo el fin de semana y no tiene 6
-días de trading automático limpio. Solo por llegar al final con un bot que ha operado de verdad
-todos los días, ya estás en el ~20% de arriba.
+### 2. La fiabilidad — de verdad opera las 4 sesiones
+El hackathon exige una **cuenta nueva**, con **$100.000**, y que se pueda **verificar el P&L** de la
+ventana entera (lun 31 ago → cierre del jue 3 sep, **4 sesiones**; ver
+[`CALENDARIO.md`](CALENDARIO.md)). Eso descalifica a la mayoría: mucha gente monta algo el fin de
+semana y no tiene cuatro días de trading automático limpio. Solo por llegar al final con un bot que
+ha operado de verdad todas las sesiones, ya estás en el ~20% de arriba.
 
 ### 3. Se puede ver operar
+> ⚠️ **El dashboard es opcional.** Las guidelines oficiales dicen que la UI **no es obligatoria**
+> (*"we are primarily evaluating the autonomous agent workflow and its trading performance"*), así que
+> está en la lista de recortes: se construye solo si el agente y la entrega están cerrados. Lo que
+> **sí** entregamos siempre es el journal falsable (`data/journal.jsonl`). No prometáis la web en el
+> write-up si no existe → issue #18.
+
 Los demás entregan un repositorio de código y un vídeo grabado de la pantalla. Nosotros entregamos
 además una **web en directo** donde se ve la mesa debatir, la superficie de volatilidad que está
 leyendo, el libro de posiciones abiertas, y un **registro de predicciones** donde cada tesis queda
@@ -64,15 +71,36 @@ calificada como acertada o fallada. Eso gana el eje de Presentación y da materi
 
 ## Cómo puntúa en el jurado
 
-Cinco criterios, peso parecido (~20% cada uno):
+**Son CUATRO criterios, de peso parecido (~25% cada uno).** Verificado el 29 ago contra las fuentes
+públicas → [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md).
+
+*(Antes esta tabla listaba cinco al ~20% metiendo "Social Engagement". Era incorrecto: el social es un
+**premio aparte** — dos de $500 —, no un eje del rubro. La corrección no es cosmética: mueve el peso
+del P&L de ~20% a ~25%.)*
 
 | Criterio | Nuestra jugada | Realidad |
 |---|---|---|
-| **P&L Performance** | Núcleo consistente + adaptación al régimen + apuesta direccional pequeña (≤15%). Positivo modesto, nunca reventar | **Cedemos este.** En 6 días lo gana un YOLO con suerte. Objetivo: no quedar en rojo |
-| **Technology Implementation** | CLI (bot 24/7) + MCP (demo) + datos de opciones con griegas/IV + OI para el GEX + condors de 4 patas + comité de modelos Featherless | **Aquí apretamos.** Uso profundo y real de todo el stack de Alpaca |
-| **Creativity & Originality** | Mesa de agentes que discuten, anclada en la superficie de vol + gamma (no en noticias ni fundamentales) + registro público de predicciones | **Aquí apretamos.** El debate solo no es original; el anclaje en el gamma sí |
-| **Presentation & Execution** | Dashboard "trading floor" en vivo + one-pager limpio + vídeo con el debate y el momento en que la mesa se niega a operar antes del NFP | **Aquí apretamos** si el dashboard está pulido |
-| **Social Engagement** | Un post al día contando el proceso, con el dashboard como gancho, etiquetando a @lablabai y @AlpacaHQ | Dos premios de $500 — mucho retorno por poco esfuerzo |
+| **P&L Performance** (~25%) | Núcleo consistente + adaptación al régimen. Positivo modesto, nunca reventar | **No es nuestro eje fuerte, pero no lo regalamos** — ver abajo |
+| **Technology Implementation** (~25%) | Trading API + CLI + datos de opciones con griegas/IV + OI para el GEX + condors de 4 patas | **Aquí apretamos.** Uso profundo y real del stack de Alpaca. Solo contamos lo que esté construido |
+| **Creativity & Originality** (~25%) | Mesa de agentes que discuten, anclada en la superficie de vol + gamma (no en noticias ni fundamentales) + registro público de predicciones | **Aquí apretamos.** El debate solo no es original; el anclaje en el gamma sí |
+| **Presentation & Execution** (~25%) | One-pager limpio + vídeo con el debate y el momento en que la mesa se niega a operar antes de un dato macro (+ dashboard si da tiempo: la UI **no** es obligatoria) | **Aquí apretamos** |
+
+Aparte del rubro: **Social Engagement** — un post al día contando el proceso, etiquetando a
+@lablabai y @AlpacaHQ. Dos premios de $500, mucho retorno por poco esfuerzo, pero **no suma en la
+puntuación del proyecto**.
+
+### Sobre el P&L: matiz importante
+
+Este documento decía antes *"Cedemos este"*. **Con cuatro criterios, ceder el P&L es ceder un cuarto
+del rubro**, así que la frase necesita matiz: no aspiramos a ganar el eje de P&L (en cuatro sesiones
+lo gana quien tenga suerte), pero **ceder el upside conservando el downside es la peor combinación
+posible** — que es exactamente donde estamos hoy con el sizing actual.
+
+El razonamiento completo, con los números, está en [`VIABILIDAD.md`](VIABILIDAD.md) → *"La
+incoherencia de riesgo que hay que resolver"*. Resumen: hay que elegir explícitamente entre **(a)**
+asumir la cesión y reducir también el riesgo, o **(b)** rampa de sizing agresiva si el lunes va
+limpio. Cualquiera de las dos vale; la posición actual — (a) en el upside y (b) en el downside — no.
+Es una decisión humana → issue #16.
 
 ---
 
@@ -81,9 +109,9 @@ Cinco criterios, peso parecido (~20% cada uno):
 - **Semana de volatilidad baja.** Si el mercado está muy plano, los seguros valen poco → el P&L
   será pequeño aunque la estrategia acierte. Lo mitiga el modo adaptativo (comprar apuestas
   direccionales baratas cuando toca), no lo elimina.
-- **6 días es una lotería de varianza** en el P&L. Un solo día de tendencia fuerte puede borrar una
-  semana de ganancias de condors. Por eso no apostamos el proyecto a ese eje.
-- **Scope ajustado**: capa de IA + dashboard + contenido en 3 días con 2 personas es justo. Hay una
+- **4 sesiones son una lotería de varianza** en el P&L. Un solo día de tendencia fuerte puede borrar
+  una semana de ganancias de condors. Por eso no apostamos el proyecto a ese eje.
+- **Scope ajustado**: capa de IA + contenido (+ dashboard, opcional) en pocos días con 2 personas es justo. Hay una
   lista de recortes explícita en `../PLAN.md` — lo primero que se cae es la reflexión nocturna, lo
   último el motor y las reglas de riesgo (esos no se tocan).
 - **El debate alcista/bajista no es original por sí solo.** El repo `ai-hedge-fund` (20k estrellas)
@@ -99,7 +127,7 @@ Se documentan por si hubiera que pivotar.
 ### A · Wheel Bot — la más simple
 Vender puts sobre una acción buena; si te asignan las acciones, venderlas con calls. Cobrar prima en
 bucle. **Descartada:** robusta y fácil de explicar, pero **nada diferenciada** (cientos la harán) y
-en 6 días apenas completa un ciclo.
+en 4 sesiones apenas completa un ciclo.
 
 ### B · News Trader — la IA lee noticias y opera
 Un agente lee noticias y resultados en tiempo real con Featherless, forma una tesis direccional y la

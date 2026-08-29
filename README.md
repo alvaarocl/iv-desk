@@ -13,6 +13,12 @@ It does not trade price. It trades the **volatility risk premium**, gated by **d
 | [`docs/CONCEPT.md`](docs/CONCEPT.md) | **Plain-language** explanation — what it does, why it wins, alternatives we considered. Start here if you're not a trader. |
 | [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…). |
 | [`docs/STATUS.md`](docs/STATUS.md) | What works now, what's left, decisions locked vs open. |
+| [`docs/AUDITORIA.md`](docs/AUDITORIA.md) | **Technical audit (29 Aug)** — every known defect with file:line, by severity. Keep in sync with the code. |
+| [`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md) | Verified contest rules, judging criteria, deadlines, and where our docs drifted. |
+| [`docs/CALENDARIO.md`](docs/CALENDARIO.md) | **Every deadline in one place**, in local time (CEST) *and* market time (ET) — P&L window, the four sessions, critical intraday moments, macro blackouts. |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | **Live-session runbook** — Monday startup checklist, what to watch on every loop, kill switch, incident decision tree, incident log. |
+| [`docs/VIABILIDAD.md`](docs/VIABILIDAD.md) | Is the idea actually viable? Positioning for the judges, risk posture, priorities. |
+| [`docs/API-ALPACA.md`](docs/API-ALPACA.md) | Hard-won Alpaca API / CLI / feed conventions. **Read before touching order code.** |
 | [`docs/strategy-spec.md`](docs/strategy-spec.md) | The precise strategy — signal maths, strike selection, every risk gate. |
 | [`docs/game-plan.html`](docs/game-plan.html) | The strategy + 7-day plan as a designed one-pager (open in a browser). |
 | [`PLAN.md`](PLAN.md) | Day-by-day task checklist. |
@@ -31,7 +37,7 @@ Short-dated index options are structurally overpriced: implied volatility tends 
 - **Skew** — put/call IV asymmetry picks the structure and the strikes.
 - **Management is deterministic** — take profit at 50% of max credit, stop at 2× credit received, close before expiration to avoid pin risk. No LLM in this loop.
 
-Risk posture: **consistent core + small satellite.** Core book aims for modest positive P&L with defined risk and hard drawdown gates. A 10–15% satellite sleeve takes one higher-conviction directional spread when the signal is strong.
+Risk posture: **one consistent core book**, defined risk, hard drawdown gates. A directional "satellite" sleeve was specified but never implemented, and was removed on 29 Aug rather than left as dead code (issue #14) — the desk sells premium or it stands down.
 
 ---
 

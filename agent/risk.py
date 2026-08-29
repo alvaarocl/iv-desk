@@ -17,7 +17,7 @@ class PortfolioState:
     peak_nav: float
     open_risk: float          # sum of max-loss across open positions ($)
     n_positions: int
-    net_delta: float          # normalized to NAV/100k
+    net_delta: float          # delta-adjusted notional as a fraction of NAV
     day_pnl: float            # realized + unrealized today ($)
 
 
@@ -26,7 +26,7 @@ class ProposedTrade:
     underlying: str
     structure: str
     max_loss: float           # $ at the proposed size
-    net_delta: float
+    net_delta: float          # same units as PortfolioState.net_delta
     is_0dte: bool
     is_satellite: bool
 
@@ -40,8 +40,8 @@ def evaluate(trade: ProposedTrade, pf: PortfolioState, params, now_et: datetime)
         (pf.open_risk + trade.max_loss <= params.max_portfolio_risk * pf.nav,
          "portfolio risk cap"),
         (pf.n_positions < params.max_positions, "max concurrent positions"),
-        (abs(pf.net_delta + trade.net_delta) <= params.max_net_delta * (pf.nav / 100_000),
-         "portfolio delta band"),
+        (abs(pf.net_delta + trade.net_delta) <= params.max_net_delta,
+         f"portfolio delta band {abs(pf.net_delta + trade.net_delta):.2f} > {params.max_net_delta}"),
         (pf.day_pnl > -params.daily_loss_breaker * pf.nav, "daily loss circuit breaker tripped"),
         (dd < params.dd_halt, f"drawdown {dd:.1%} >= hard halt"),
         (not in_event_blackout(now_et), "macro event blackout"),

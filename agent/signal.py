@@ -3,6 +3,15 @@
 VRP (implied vs forecast realized vol) decides *whether* to sell premium.
 GEX (dealer gamma from open interest) decides *what structure* and *how aggressively*.
 Regime + skew shape the strikes. No network here beyond the passed-in data, no LLM.
+
+Three gates, each of which can independently say "stand down", and each of which writes its
+reason into `Signal.notes` so `data/journal.jsonl` shows the desk *deciding* not to trade
+rather than just being silent:
+
+  1. VRP     — IV / RV_hat must clear `vrp_ratio_min` (relative, not absolute; see issue #6).
+  2. GEX     — normalized dealer gamma must clear +`gex_min`; the band around zero is a dead
+               zone that returns regime "chop" instead of flip-flopping on a T-2 datapoint.
+  3. Regime  — trending tape means no short premium at all unless `params.fade_trend` (#12).
 """
 
 from __future__ import annotations
@@ -21,17 +30,20 @@ class Signal:
     underlying: str
     spot: float
     sell_premium: bool
-    structure: str          # iron_condor | put_credit_spread | call_credit_spread | debit_spread | none
+    structure: str          # iron_condor | put_credit_spread | call_credit_spread | none
     bias: str               # bullish | bearish | neutral
-    conviction: float       # 0..1
     regime: str             # trending_up | trending_down | range | chop
     expiration: str         # YYYY-MM-DD
-    vrp: float
+    vrp: float              # IV - RV_hat, informational only (journal / write-up)
+    vrp_ratio: float        # IV / RV_hat — this is what the gate actually reads
     atm_iv: float
     rv_hat: float
-    gex: float
-    gex_sign: int
+    gex: float              # raw dollar GEX, informational
+    gex_sign: int           # raw sign of `gex`, informational
+    gex_norm: float         # net / gross gamma notional, in [-1, 1]
+    gex_state: int          # +1 long gamma / 0 dead zone / -1 short gamma, after `gex_min`
     skew: float
+    stand_down: str         # "" when trading, else the gate that blocked: vrp | gex | trend | data
     notes: str
     chain: dict = field(default_factory=dict, repr=False)
 
@@ -39,33 +51,62 @@ class Signal:
 # ---------- realized-vol forecast ----------
 
 def yang_zhang_rv(bars: list[dict], window: int = 20) -> float:
+    """Yang-Zhang realized vol, annualized.
+
+    Every component is built on the *same* n periods. A "period" needs the previous close
+    (for the overnight gap), so with N bars there are only N-1 usable periods and the last
+    n of them are `[-n:]` of arrays that were all sliced off the same alignment. The old
+    version mixed length-N arrays (log_ho/log_lo/log_co) with length-(N-1) ones
+    (log_oc/log_cc), so the range terms were one day ahead of the gap terms — issue #6.
+
+    Also: the middle term is the *open-to-close* variance, not close-to-close. Using
+    close-to-close double-counts the overnight gap that sigma_o already carries, which
+    inflates RV_hat and biases the VRP gate toward never firing.
+    """
     o = np.array([b["o"] for b in bars], float)
     h = np.array([b["h"] for b in bars], float)
     lo = np.array([b["l"] for b in bars], float)
     c = np.array([b["c"] for b in bars], float)
-    if len(c) < window + 2:
-        window = len(c) - 2
-    n = window
-    log_ho, log_lo, log_co = np.log(h / o), np.log(lo / o), np.log(c / o)
-    log_oc = np.log(o[1:] / c[:-1])
-    log_cc = np.log(c[1:] / c[:-1])
+    if len(c) < 3:
+        return float("nan")                      # not enough history for a 2-period variance
+    n = min(window, len(c) - 1)
+
+    o_n, h_n, l_n, c_n = o[-n:], h[-n:], lo[-n:], c[-n:]
+    c_prev = c[-n - 1:-1]
+    log_oc = np.log(o_n / c_prev)                # overnight: previous close -> open
+    log_co = np.log(c_n / o_n)                   # open -> close
+    log_ho = np.log(h_n / o_n)
+    log_lo = np.log(l_n / o_n)
+
     k = 0.34 / (1.34 + (n + 1) / (n - 1))
-    sigma_o2 = np.var(log_oc[-n:], ddof=1)
-    sigma_c2 = np.var(log_cc[-n:], ddof=1)
-    sigma_rs2 = np.mean((log_ho * (log_ho - log_co) + log_lo * (log_lo - log_co))[-n:])
+    sigma_o2 = np.var(log_oc, ddof=1)
+    sigma_c2 = np.var(log_co, ddof=1)
+    sigma_rs2 = np.mean(log_ho * (log_ho - log_co) + log_lo * (log_lo - log_co))
     return float(np.sqrt(max(sigma_o2 + k * sigma_c2 + (1 - k) * sigma_rs2, 1e-9) * 252))
 
 
 def ewma_rv(bars: list[dict], lam: float = 0.94) -> float:
     c = np.array([b["c"] for b in bars], float)
+    if len(c) < 2:
+        return float("nan")
     r = np.diff(np.log(c))
     w = (1 - lam) * lam ** np.arange(len(r))[::-1]
     return float(np.sqrt(np.sum(w * r**2) / np.sum(w) * 252))
 
 
 def rv_forecast(bars: list[dict]) -> float:
-    """Blend Yang-Zhang (range-efficient) with EWMA (recency-weighted)."""
-    return 0.5 * yang_zhang_rv(bars) + 0.5 * ewma_rv(bars)
+    """Blend Yang-Zhang (range-efficient) with EWMA (recency-weighted).
+
+    Known limitation, kept deliberately: this is a 20-session annualized number compared
+    against 1-3 DTE implied vol. The horizons do not match. We do not rescale because the
+    gate is a *ratio* (`vrp_ratio_min`) and the horizon bias is roughly multiplicative and
+    stable, so it is absorbed by calibrating the ratio on the backtest (#5) instead of by
+    a term-structure model we cannot validate in four sessions.
+    """
+    yz, ew = yang_zhang_rv(bars), ewma_rv(bars)
+    if not np.isfinite(yz) or not np.isfinite(ew):
+        return float("nan")
+    return 0.5 * yz + 0.5 * ew
 
 
 # ---------- surface reads ----------
@@ -99,10 +140,31 @@ def iv_at_delta(chain: dict, target_delta: float, cp: str) -> float | None:
     return float(best) if best is not None else None
 
 
-def compute_gex(chain: dict, oi: dict[str, int], spot: float, band: float) -> float:
-    """SpotGamma-style aggregate dealer gamma exposure, +/- band of spot. Calls +, puts -."""
+def compute_gex(chain: dict, oi: dict[str, int], spot: float, band: float) -> tuple[float, float]:
+    """Aggregate dealer gamma exposure within +/- `band` of spot. Calls +, puts -.
+
+    Returns `(gex, gex_norm)`:
+
+    * `gex` — SpotGamma-style dollars of dealer delta to re-hedge per 1% move.
+    * `gex_norm` — `gex` divided by the *gross* (absolute) gamma notional of the same
+      strikes, so it lands in [-1, 1]: +1 = all dealer gamma is long, -1 = all short,
+      0 = call and put gamma cancel exactly.
+
+    Why normalize this way (issue #10). The raw dollar figure scales with spot**2, with
+    the open-interest level, and with the vol regime (gamma itself moves with IV and DTE).
+    A fixed dollar threshold therefore means three different things for SPY vs IWM, for
+    September vs March, and for a quiet tape vs a busy one. Dividing by gross gamma
+    notional cancels all three at once and leaves a pure *imbalance ratio* — which is the
+    quantity the regime gate actually cares about ("are dealers net long gamma here, and
+    by enough to matter?"), is directly comparable across the universe, and degrades
+    gracefully when the open interest is stale (Alpaca only publishes it at T-2).
+
+    Alternative considered: dividing by spot**2 alone. Rejected because it still scales
+    with OI, so SPY and IWM would need different thresholds.
+    """
     lo, hi = spot * (1 - band), spot * (1 + band)
-    total = 0.0
+    net = 0.0
+    gross = 0.0
     for sym, s in chain.items():
         g = s.get("greeks")
         if not g or sym not in oi:
@@ -111,12 +173,36 @@ def compute_gex(chain: dict, oi: dict[str, int], spot: float, band: float) -> fl
         if not (lo <= k <= hi):
             continue
         sign = 1.0 if cp == "C" else -1.0
-        total += g["gamma"] * oi[sym] * 100 * spot**2 * 0.01 * sign
-    return total
+        contrib = g["gamma"] * oi[sym] * 100 * spot**2 * 0.01
+        net += contrib * sign
+        gross += abs(contrib)
+    return net, (net / gross if gross > 0 else 0.0)
 
 
-def classify_regime(bars: list[dict], gex_sign: int) -> tuple[str, str]:
+def gex_state(gex_norm: float, gex_min: float) -> int:
+    """+1 dealers long gamma with magnitude, -1 short with magnitude, 0 = dead zone.
+
+    The dead zone is the whole point: open interest is T-2, so a `gex_norm` of +0.01 and
+    one of -0.01 are the same reading with different noise, and a bare sign test made the
+    desk flip between "sell condors" and "stand down" every 15 minutes.
+    """
+    if gex_norm >= gex_min:
+        return 1
+    if gex_norm <= -gex_min:
+        return -1
+    return 0
+
+
+def classify_regime(bars: list[dict], state: int, fade_trend: bool = False) -> tuple[str, str]:
+    """-> (regime, bias). `state` is the output of `gex_state`, not a bare sign.
+
+    `bias` is the honest read of the tape: a trending-up market is `bullish`. Under
+    `fade_trend=True` (the legacy behaviour, see issue #12) it is deliberately inverted so
+    that `build_signal` sells the side the market is running into.
+    """
     c = np.array([b["c"] for b in bars], float)
+    if state == 0:
+        return "chop", "neutral"                 # GEX dead zone — no defensible regime call
     ema20 = _ema(c, 20)
     ema50 = _ema(c, min(50, len(c)))
     adx = _adx(bars, 14)
@@ -125,10 +211,10 @@ def classify_regime(bars: list[dict], gex_sign: int) -> tuple[str, str]:
     up = last > ema20 > ema50
     down = last < ema20 < ema50
     if trending and up:
-        return "trending_up", "bearish"      # fade-the-move bias for call side
+        return "trending_up", ("bearish" if fade_trend else "bullish")
     if trending and down:
-        return "trending_down", "bullish"
-    if gex_sign > 0 and adx < 18:
+        return "trending_down", ("bullish" if fade_trend else "bearish")
+    if state > 0 and adx < 18:
         return "range", "neutral"
     return "chop", "neutral"
 
@@ -142,9 +228,18 @@ def _ema(x: np.ndarray, n: int) -> float:
 
 
 def _adx(bars: list[dict], n: int = 14) -> float:
+    """Wilder's ADX: DX smoothed with an n-period RMA.
+
+    The previous implementation collapsed +DI/-DI to scalars and returned a single DX,
+    which is a much noisier and much higher number than an ADX — so the `> 22` threshold
+    in strategy-spec.md did not mean what it said (issue #12). Everything below is now a
+    series; only the final value is collapsed.
+    """
     h = np.array([b["h"] for b in bars], float)
     lo = np.array([b["l"] for b in bars], float)
     c = np.array([b["c"] for b in bars], float)
+    if len(c) < n + 2:
+        return 0.0
     up, dn = h[1:] - h[:-1], lo[:-1] - lo[1:]
     plus_dm = np.where((up > dn) & (up > 0), up, 0.0)
     minus_dm = np.where((dn > up) & (dn > 0), dn, 0.0)
@@ -153,16 +248,23 @@ def _adx(bars: list[dict], n: int = 14) -> float:
     pdi = 100 * _rma(plus_dm, n) / (atr + 1e-9)
     mdi = 100 * _rma(minus_dm, n) / (atr + 1e-9)
     dx = 100 * np.abs(pdi - mdi) / (pdi + mdi + 1e-9)
-    return float(dx if np.isscalar(dx) else np.mean(dx))
+    adx = _rma(dx, n)
+    if adx.size:
+        return float(adx[-1])
+    return float(dx[-1]) if dx.size else 0.0
 
 
-def _rma(x: np.ndarray, n: int) -> float:
+def _rma(x: np.ndarray, n: int) -> np.ndarray:
+    """Wilder's smoothing, as a series. Returns length max(len(x) - n + 1, 0)."""
     if len(x) < n:
-        return float(np.mean(x)) if len(x) else 0.0
-    r = np.mean(x[:n])
-    for v in x[n:]:
-        r = (r * (n - 1) + v) / n
-    return float(r)
+        return np.array([])
+    out = np.empty(len(x) - n + 1)
+    r = float(np.mean(x[:n]))
+    out[0] = r
+    for i, v in enumerate(x[n:], start=1):
+        r = (r * (n - 1) + float(v)) / n
+        out[i] = r
+    return out
 
 
 # ---------- data fetch ----------
@@ -204,39 +306,49 @@ def build_signal(underlying: str, data: dict, params) -> Signal:
     spot, chain, oi, bars = data["spot"], data["chain"], data["oi"], data["bars"]
     iv = atm_iv(chain, spot)
     rv = rv_forecast(bars)
-    vrp = iv - rv
-    gex = compute_gex(chain, oi, spot, params.gex_band)
-    gex_sign = 1 if gex >= 0 else -1
+    have_vol = bool(np.isfinite(iv) and np.isfinite(rv) and iv > 0 and rv > 0)
+    vrp = float(iv - rv) if have_vol else float("nan")
+    ratio = float(iv / rv) if have_vol else float("nan")
+
+    gex, gex_norm = compute_gex(chain, oi, spot, params.gex_band)
+    state = gex_state(gex_norm, params.gex_min)
     put_iv = iv_at_delta(chain, 0.25, "P")
     call_iv = iv_at_delta(chain, 0.25, "C")
     skew = (put_iv - call_iv) if (put_iv and call_iv) else 0.0
-    regime, bias = classify_regime(bars, gex_sign)
+    regime, bias = classify_regime(bars, state, params.fade_trend)
 
-    rich = vrp >= params.vrp_min
-    sell = rich and gex_sign > 0
-    if not rich:
-        structure = "none"
-    elif gex_sign < 0:
-        structure = "debit_spread"          # trending tape — satellite only, directional
-        sell = False
+    # --- the three stand-down gates, in order of how cheap they are to evaluate ---
+    structure, sell, stand_down = "none", False, ""
+    if not have_vol:
+        stand_down = "data"                      # no usable IV or not enough bar history
+    elif ratio < params.vrp_ratio_min:
+        stand_down = "vrp"                       # options are not rich *relative to* realized
+    elif state <= 0:
+        stand_down = "gex"                       # dealers short gamma, or inside the dead zone
+    elif regime in ("trending_up", "trending_down") and not params.fade_trend:
+        stand_down = "trend"                     # issue #12: no short premium into a trend
     elif regime == "range":
-        structure = "iron_condor"
+        structure, sell = "iron_condor", True
     elif bias == "bullish":
-        structure = "put_credit_spread"
+        structure, sell = "put_credit_spread", True
     elif bias == "bearish":
-        structure = "call_credit_spread"
+        structure, sell = "call_credit_spread", True
     else:
-        structure = "iron_condor"
+        structure, sell = "iron_condor", True
 
-    conviction = float(np.clip(
-        0.35 + 4 * max(vrp, 0) + (0.15 if regime == "range" else 0.0) + min(abs(skew), 0.05), 0, 1
-    ))
+    if have_vol:
+        head = f"IV {iv:.1%} vs RV_hat {rv:.1%} (ratio {ratio:.2f} vs {params.vrp_ratio_min:.2f})"
+    else:
+        head = "IV/RV unavailable"
+    notes = (f"{head}; GEX_norm {gex_norm:+.3f} (|min| {params.gex_min:.2f}, state {state:+d}); "
+             f"regime {regime}; skew {skew:+.1%}"
+             + (f"; STAND DOWN [{stand_down}]" if stand_down else f"; {structure}"))
 
     return Signal(
         underlying=underlying, spot=spot, sell_premium=sell, structure=structure, bias=bias,
-        conviction=conviction, regime=regime, expiration=data["expiration"], vrp=round(vrp, 4),
-        atm_iv=round(iv, 4), rv_hat=round(rv, 4), gex=gex, gex_sign=gex_sign, skew=round(skew, 4),
-        notes=f"IV {iv:.1%} vs RV_hat {rv:.1%}; GEX {'+' if gex_sign>0 else '-'} {abs(gex):.2e}; "
-              f"regime {regime}; skew {skew:+.1%}",
-        chain=chain,
+        regime=regime, expiration=data["expiration"],
+        vrp=round(vrp, 4), vrp_ratio=round(ratio, 3),
+        atm_iv=round(iv, 4), rv_hat=round(rv, 4),
+        gex=gex, gex_sign=(1 if gex >= 0 else -1), gex_norm=round(gex_norm, 4), gex_state=state,
+        skew=round(skew, 4), stand_down=stand_down, notes=notes, chain=chain,
     )

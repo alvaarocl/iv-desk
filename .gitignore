@@ -9,3 +9,4 @@ dashboard/.next/
 dashboard/out/
 Refs/
 !data/.gitkeep
+backtest/cache/
