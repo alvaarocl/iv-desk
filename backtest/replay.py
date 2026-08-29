@@ -312,11 +312,14 @@ def stock_bars(symbol: str, start: date, end: date) -> list[dict]:
     forecast is therefore computed on stale bars. Reported separately — not fixed here,
     `agent/` belongs to another lane.
     """
+    # feed=iex: the free tier forbids SIP data inside the last 15 min, and `end=today` makes the
+    # whole request "recent" -> 403 "subscription does not permit querying recent SIP data".
+    # IEX daily bars are real-time on the free tier and fine for a realized-vol estimate.
     bars: list[dict] = []
     token: str | None = None
     while True:
         page = md._get(
-            f"/v2/stocks/{symbol}/bars", timeframe="1Day", feed="sip",
+            f"/v2/stocks/{symbol}/bars", timeframe="1Day", feed="iex",
             start=start.isoformat(), end=end.isoformat(), limit=10_000, page_token=token,
         )
         bars.extend(page.get("bars") or [])

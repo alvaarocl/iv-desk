@@ -21,31 +21,35 @@ UNIVERSE = ["SPY", "QQQ", "IWM"]
 @dataclass
 class Params:
     # --- signal gates -------------------------------------------------------------------
-    # PROVISIONAL. Every number in this block is a defensible first guess, not a calibrated
-    # value: the definitive set comes out of the backtest in issue #5. Change them there,
-    # with evidence, not here.
-    vrp_ratio_min: float = 1.15      # sell premium only if ATM_IV / RV_hat >= this (relative,
-                                     # so it survives a 6% IV tape as well as a 20% one; #6)
-    gex_min: float = 0.10            # |net/gross gamma notional| floor. Below it -> dead zone
-                                     # -> regime "chop" -> no trade, instead of flip-flopping
-                                     # on a T-2 open-interest reading (#10)
+    # CALIBRATED 30 Aug against 60 real sessions x SPY/QQQ/IWM (backtest/RESULTS.md, issues
+    # #6 #7 #10 #29 #30). The real tape's VRP is thin: IV/RV_hat median 0.90, p90 1.27. The
+    # pre-audit config fired 0 trades in 174 underlying-sessions; vrp 1.15 + gex 0.10 fired
+    # only 3. The sensitivity grid showed vrp 1.05 and a near-zero gex floor recover trades
+    # with positive expectancy, so:
+    vrp_ratio_min: float = 1.05      # sell premium only if ATM_IV / RV_hat >= this. 1.15 was
+                                     # starving it (3 trades/174, -$35). The grid has a real
+                                     # inflection here: 1.05 -> 11 trades/+$484, 1.00 -> 13/+$117
+                                     # (the 1.00-1.05 trades are net losers). Still well above
+                                     # the 0.90 median IV/RV of the real tape (#6).
+    gex_min: float = 0.03            # dead-zone floor on |net/gross gamma notional|. 0.10 cost
+                                     # 6 of 11 VRP survivors for no P&L gain; 0.0 is just the
+                                     # bare sign (#10's complaint). 0.03 keeps the near-zero
+                                     # flip-flop filter without the expensive threshold.
     fade_trend: bool = False         # False -> stand down in a trending tape (decision on #12).
                                      # True restores the old "sell into the move" behaviour;
                                      # one flag, so the reversal is a one-line change.
 
     # --- structure geometry -------------------------------------------------------------
-    # PROVISIONAL, same caveat: pending the #5 backtest.
     # For a condor, credit/width ~ 2 x the mean |delta| between the short and long strike
     # (desk.py charges the max loss of one side only), so the ratio *rises* as the width
-    # narrows. 4-point wings on SPY put the long leg near 5 delta and collect ~0.20 of width;
-    # 2-point wings keep the long leg near 10 delta and land nearer 0.25-0.30. That is why
-    # 0.33 x 4.0 was unreachable (#7): it was never a vol problem, it was geometry.
-    # If cr_frac still falls short in the backtest, the next lever is short_delta (0.18 -> 0.22),
-    # not the width.
-    short_delta: float = 0.18        # target short-strike delta
+    # narrows. That is why 0.33 x 4.0 was unreachable (#7): geometry, not vol. On the real
+    # tape credit/width ran median 0.223 / max 0.280 at width 2/1 — so 0.20 is the honest
+    # floor and anything above ~0.28 would gate out every real structure.
+    short_delta: float = 0.18        # target short-strike delta. 0.25 barely moved P&L in the
+                                     # grid and widens per-trade risk — kept conservative.
     width_spy: float = 2.0           # SPY and QQQ; both quote $1 strikes near the money
     width_iwm: float = 1.0
-    min_credit_frac: float = 0.20    # credit / width floor
+    min_credit_frac: float = 0.20    # credit / width floor (see above: real max was 0.28)
     take_profit_frac: float = 0.50   # close at 50% of max credit
     stop_multiple: float = 2.0       # close at 2x credit received
     # --- sizing: frequency over size (decision on #16, option c) --------------------------
