@@ -78,3 +78,25 @@ del jurado. Rellenar en el momento, no de memoria el viernes.
 | 1 | | | | | |
 | 2 | | | | | |
 | 3 | | | | | |
+
+---
+
+## La capa LLM (la mesa)
+
+**Antes del lunes:** `FEATHERLESS_MODELS` tiene que llevar **3 ids de modelo separados por comas**.
+Si está vacío, el Quant no alcanza consenso y **cada apertura se planta** con `debate_unavailable`
+en el journal. No es un fallo silencioso, pero sí se parece a "el desk no opera nunca".
+
+**Kill switch de la mesa** (independiente del `DESK_MODE`):
+
+| Situación | Acción |
+|---|---|
+| Featherless o Anthropic caídos, o el cupón agotado | `DESK_DEBATE=off` → el desk sigue operando con la decisión determinista |
+| Sospecha de que la mesa aprueba cosas raras | `DESK_DEBATE=required` y revisar los eventos `debate` del journal |
+| Parar el desk entero | Ver el kill switch de arriba (`DESK_MODE`) |
+
+`DESK_DEBATE=off` **no** desactiva las salidas ni los gates de riesgo: solo salta el debate. Es el
+modo degradado seguro, no un apagado.
+
+**Qué mirar en el journal:** cada apertura escribe un evento `debate` con el transcript completo y la
+predicción. Si `approved: false`, el motivo está en el registro — eso es material para el write-up.

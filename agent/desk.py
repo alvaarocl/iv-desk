@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from . import broker, risk
+from . import broker, debate, risk
 from . import execution as ex
 from . import marketdata as md
 from . import signal as sg
@@ -162,7 +162,18 @@ def run_once() -> None:
             continue
 
         thesis = f"{u} stays inside {sel['strikes']} through {s.expiration}: {s.notes}"
-        # TODO: debate(s, sel) → may veto / adjust before commit
+
+        # The desk debates. `n` is the ceiling risk.evaluate() already approved: the LLM can
+        # only trim or veto, never widen. See agent/debate.py.
+        d = debate.review_open(s, sel, n, thesis)
+        append({"ts": stamp, "event": "debate", "underlying": u, **d.to_record()})
+        if not d.approved:
+            continue
+        n, thesis = d.contracts, d.thesis
+        # The Desk Head may have trimmed the size — max_loss must follow, or the book
+        # over-reports its own risk and blocks later trades.
+        proposed.max_loss = (sel["width"] - sel["credit"]) * 100 * n
+
         t = ex.open_trade(s, sel, n, thesis, mode)
         pf.n_positions += 1
         pf.open_risk += proposed.max_loss

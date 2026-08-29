@@ -32,7 +32,7 @@ def pick_condor_legs(trading, opt, stock):
         )
     )
     puts, calls = {}, {}
-    for sym, snap in chain.items():
+    for sym in chain:
         # OCC symbol: ...YYMMDD[C/P]00000000 — parse type + strike
         body = sym[len(UNDERLYING) :]
         cp = body[6]

@@ -120,8 +120,17 @@ Vender primas contra la dirección del movimiento es la forma clásica de perder
 
 Además `_adx()` (`signal.py:126`) devuelve un DX puntual, no un ADX suavizado — el umbral `> 22` no significa lo que dice la spec.
 
-### 13. La capa LLM no existe
-`desk.py:105` (`# TODO: debate(s, sel)`) · issue #13
+### 13. ~~La capa LLM no existe~~ ✅ CONSTRUIDA Y CABLEADA (29 ago)
+`agent/seats.py`, `agent/debate.py` · issue #13
+
+> Construida el 29 ago. La propiedad de seguridad es una línea (`debate.py:263`):
+> `contracts = max(0, min(int(head.contracts), cap))`, donde `cap` es la `n` que ya aprobó
+> `risk.evaluate()`. **El debate es una función monótona no creciente del riesgo**: puede recortar
+> o vetar, nunca ampliar. Hay un test de inyección de prompt que lo comprueba.
+> Los asientos corren en hilos *daemon* con `join(timeout)`, no en un `ThreadPoolExecutor`: su
+> `__exit__` hace `shutdown(wait=True)` y volvía a esperar al asiento que acababas de descartar,
+> convirtiendo un presupuesto de 90 s en un cuelgue de 30 s+ en un cron de 15 minutos.
+
 
 Es **el diferenciador del proyecto** y está sin construir. `anthropic` y `openai` en `pyproject.toml` con cero imports. Sin esto somos un bot determinista más y perdemos el eje de Creativity.
 
