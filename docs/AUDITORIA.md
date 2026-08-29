@@ -12,7 +12,7 @@ Revisión completa del repo en el commit `75b9af3` (~1.150 LOC de Python). Cada 
 
 | Severidad | Nº | Efecto si no se arregla |
 |---|---|---|
-| **P0** | 7 | O no operamos nada en 4 sesiones, o operamos con el signo del precio invertido. Y no cumplimos el requisito técnico del hackathon |
+| **P0** | 8 | O no operamos nada en 4 sesiones, o operamos con el signo del precio invertido. Y no cumplimos el requisito técnico del hackathon |
 | **P1** | 9 | Estado inconsistente, cero tests, gates que son no-ops, créditos calculados sobre quotes fantasma, y el diferenciador (capa LLM) sin construir |
 | **P2** | 5 | Docs que describen comportamiento inexistente, sizing incoherente con la postura de riesgo, y asignación temprana sin contemplar |
 
@@ -63,10 +63,36 @@ El repricing que promete `strategy-spec.md` ("reprice cada 30s, máx 3 pasos") n
 
 Las reglas exigen Trading API **+ MCP o CLI**. `broker.py` es REST puro; el CLI se instala en el workflow y no se usa jamás; el MCP no existe. **Es elegibilidad, no una mejora.**
 
-### 5. La estrategia probablemente no dispara nunca
-issue #5
+### 5. ~~La estrategia probablemente no dispara nunca~~ ✅ CONFIRMADO Y CORREGIDO (29 ago)
+issue #5 · `backtest/replay.py`
 
-Dos gates independientes (#6 y #7) bloquean el 100% de los trades con la IV actual. No dan error: simplemente no pasa nada durante cuatro sesiones. **Sin backtest no lo sabremos hasta el lunes en vivo.**
+**El backtest confirmó la sospecha: con los parámetros anteriores, 0 trades en 180 sesiones-subyacente.**
+
+| Gate | Supervivientes | |
+|---|---|---|
+| sesiones evaluadas | 180 | |
+| VRP rico | 41 | mata el 77% |
+| estructura construida | 41 | |
+| `credit/width >= min_credit_frac` | **0** | **mata el 100% restante** |
+
+**El gate de crédito era el letal, y era independientemente fatal:** apagando el VRP por completo
+(`0.03 → 0.00`) los candidatos se triplican a 120 y **siguen saliendo 0 trades**. El
+`credit/width` observado tuvo una mediana de 0.240 y un máximo de 0.310 — el umbral de 0.33 estaba
+**por encima del techo geométrico** de la estructura. Ver la corrección al diagnóstico en la entrada 7.
+
+Con los parámetros actuales: **57 trades**. Estrechar el ala sola no bastaba (4/2 → 2/1 con el
+umbral viejo da solo 2 trades): hacían falta **las dos palancas**.
+
+> ⚠️ **Esto es tape sintético, no mercado real.** Valida el pipeline y el argumento geométrico
+> (que es analíticamente sólido), pero **el P&L de +$2.670 no es una previsión de nada**. La fila de
+> `gex_min` es circular por construcción y no prueba nada. La corrida real necesita claves de Alpaca:
+> `uv run python -m backtest.replay`.
+
+**Dos avisos sobre la calibración nueva:**
+- `gex_min = 0.10` tiene **muy poco margen**: subirlo a 0.30 devuelve el desk a cero trades. Necesita
+  una lectura con datos reales antes del lunes.
+- `min_credit_frac = 0.20` no está mordiendo ahora mismo (0.20 y 0.10 dan lo mismo), pero 0.30 baja a
+  14 trades. Está bien colocado justo por debajo de la distribución, no por encima.
 
 ### 6. ~~El VRP está mal medido y su umbral es absoluto~~ ✅ RESUELTO (29 ago)
 `signal.py` (`rv_forecast`, `build_signal`), `config.py:29` · issue #6
@@ -86,6 +112,17 @@ Dos gates independientes (#6 y #7) bloquean el 100% de los trades con la IV actu
 
 
 `0.33 × 4.0` exige **$1.33 de crédito en un condor de 4 puntos a 18Δ**. Con IV al 6-10% a 1-3 DTE eso recoge $0.30-0.60 → `cr_frac ≈ 0.10`. Rechazado siempre. **Es independiente del VRP**: aunque se arregle #6, este sigue bloqueando todo.
+
+### 23. `daily_bars` devuelve las barras más antiguas, no las más recientes
+`agent/marketdata.py:31-36` · issue #26 · **encontrado por el backtest, verificado a mano**
+
+`start` se calcula a 110 días naturales (~78 sesiones) pero `limit` es 60, y Alpaca devuelve en orden
+**ascendente** — así que `limit` corta las barras **más nuevas**. La serie que alimenta `rv_forecast()`
+**termina ~18 sesiones antes de hoy**.
+
+El gate de VRP compara la IV de hoy contra la volatilidad realizada de hace casi un mes. No falla ni
+avisa: devuelve un número plausible. **Invalida parcialmente la calibración de `vrp_ratio_min` hasta
+que se arregle.**
 
 ---
 
