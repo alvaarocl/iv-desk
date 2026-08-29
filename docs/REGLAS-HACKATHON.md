@@ -8,7 +8,7 @@ Verificado el **29 ago 2026** contra las fuentes públicas del evento. Lo que vi
 
 | Requisito | Nuestro estado |
 |---|---|
-| Usar la **Trading API** de Alpaca **y además el MCP server o el CLI** | ❌ **INCUMPLE.** `broker.py` es `httpx` + REST puro. El CLI se instala en `.github/workflows/desk.yml` y **no se usa jamás**. El MCP no existe. → issue #4 |
+| Usar la **Trading API** de Alpaca **y además el MCP server o el CLI** | ✅ **Cumple (#4 cerrado).** `agent/broker.py` rutea **toda** llamada de trading por el CLI oficial (`alpaca api METHOD /path` vía `subprocess`): cuenta, clock, posiciones, órdenes, cancelaciones, `/v2/options/contracts` y la `mleg`. Market data (solo lecturas) sigue por REST, que está permitido. |
 | La estrategia debe incorporar **opciones** | ✅ Es lo único que hace |
 | **Cuenta paper nueva y dedicada** para la submission | ✅ `PA39HSCQE8S3`, intacta. Testing separado en `PA3TQHQKM5AD` |
 | Python + GitHub | ✅ |
