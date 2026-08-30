@@ -7,7 +7,7 @@ Plan del fin de semana en [`PLAN-FINDE.md`](PLAN-FINDE.md).
 
 ## Dónde estamos
 
-**Todo lo técnico está hecho y en `main`** (`e0f10aa`): 109 tests, `ruff` limpio, loop end-to-end
+**Todo lo técnico está hecho y en `main`**: 116 tests, `ruff` limpio, loop end-to-end
 por el CLI. Además de eso, ya hecho este finde:
 
 - **Calibrado con backtest real** (60 sesiones Alpaca): `vrp_ratio_min 1.05`, `gex_min 0.03`.
@@ -68,7 +68,7 @@ hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
 | `agent/desk.py` | Loop completo: guardarraíl de cuenta → reconcile → salidas → gates de cartera → señal → debate → apertura → journal. ✅ end-to-end en `dry_run`. |
 | `agent/journal.py` | Journal append-only + curva de equity + hook de grading de predicciones. ✅ |
 | `backtest/replay.py` | Harness de replay. ✅ **corrido con datos reales** → `../backtest/RESULTS.md`. |
-| Tests | **109 tests**, `ruff` limpio. La mesa se testea con dobles inyectados: sin red y sin claves. Harness de replay del exit manager incluido. ✅ |
+| Tests | **116 tests**, `ruff` limpio. La mesa se testea con dobles inyectados: sin red y sin claves. Harness de replay del exit manager incluido. ✅ |
 | `.github/workflows/desk.yml` | Cron cada 15 min en horario de mercado + `workflow_dispatch`; instala y **verifica la versión** del CLI (pin `0.0.14`). ✅ |
 | Probes Día 0 | Los 3 pasaron. `../probes/RESULTS.md`. ✅ |
 | `docs/write-up.md` | Reescrito desde el código (#34/#18): sin Anthropic, sin MCP, cada afirmación con su fichero. 🔶 solo faltan los números del jueves. |

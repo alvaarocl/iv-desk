@@ -133,7 +133,7 @@ believing it.
 
 ## Engineering
 
-100 tests, no network and no API keys required: the four-seat debate runs end-to-end against
+116 tests, no network and no API keys required: the four-seat debate runs end-to-end against
 injected transport doubles (`tests/test_debate.py`), strike selection and the exit manager against
 synthetic chains (`tests/test_execution.py`), and the gates and account guard directly
 (`tests/test_risk_and_guard.py`). Every tunable is one dataclass with the reasoning for each number

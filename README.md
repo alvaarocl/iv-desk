@@ -13,7 +13,7 @@ It does not trade price. It trades the **volatility risk premium**, gated by **d
 | [`docs/CONCEPT.md`](docs/CONCEPT.md) | **Plain-language** explanation — what it does, why it wins, alternatives we considered. Start here if you're not a trader. |
 | [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…). |
 | [`docs/STATUS.md`](docs/STATUS.md) | What works now, what's left, decisions locked vs open. |
-| [`docs/AUDITORIA.md`](docs/AUDITORIA.md) | **Technical audit (29 Aug)** — every known defect with file:line, by severity. Keep in sync with the code. |
+| [`docs/AUDITORIA.md`](docs/AUDITORIA.md) | **Technical audit (29 Aug, status 30 Aug)** — every known defect with file:line. All 8 P0 and 9 P1 closed; see the "Estado al 30 ago" block. |
 | [`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md) | Verified contest rules, judging criteria, deadlines, and where our docs drifted. |
 | [`docs/CALENDARIO.md`](docs/CALENDARIO.md) | **Every deadline in one place**, in local time (CEST) *and* market time (ET) — P&L window, the four sessions, critical intraday moments, macro blackouts. |
 | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | **Live-session runbook** — Monday startup checklist, what to watch on every loop, kill switch, incident decision tree, incident log. |
@@ -33,7 +33,7 @@ The rest of this README is the technical thesis.
 Short-dated index options are structurally overpriced: implied volatility tends to exceed subsequently realized volatility (the *volatility risk premium*, VRP). Harvesting that premium is positive expectancy **only when you are disciplined about (a) when the premium is actually rich, (b) what the dealer-hedging regime is doing to price dynamics, and (c) mechanical trade management.** Humans are not disciplined about those. An agent can be.
 
 - **VRP** — sell premium only when IV (from Alpaca option snapshots) exceeds a realized-vol forecast (Yang-Zhang / EWMA) by a threshold.
-- **Dealer gamma (GEX)** — aggregate gamma exposure from chain open interest. Positive GEX ⇒ mean-reverting tape ⇒ iron condors. Negative GEX ⇒ trending tape ⇒ stand down or trade a directional debit spread.
+- **Dealer gamma (GEX)** — aggregate gamma exposure from chain open interest. Positive GEX ⇒ mean-reverting tape ⇒ iron condors. Negative GEX or a trending tape ⇒ **stand down** (`fade_trend=False`, decision on #12 — fading a trend with short premium is how short-vol books die).
 - **Skew** — put/call IV asymmetry picks the structure and the strikes.
 - **Management is deterministic** — take profit at 50% of max credit, stop at 2× credit received, close before expiration to avoid pin risk. No LLM in this loop.
 
@@ -75,11 +75,12 @@ requirement. It may be added later purely as a demo aid.
 
 ```
 agent/        the desk: signal, risk, execution, debate, loop, journal
+backtest/     replay harness + RESULTS.md (the calibration evidence)
 probes/       Day-0 de-risking scripts (run once API keys exist)
-dashboard/    Next.js live "trading floor" (equity curve, debate feed, prediction ledger)
+dashboard/    a single static index.html on GitHub Pages, reads data/ live
 docs/         strategy spec + the one-page write-up for submission
-data/         journal.jsonl, equity.csv, gex cache (git-tracked audit trail)
-.github/      scheduled workflow that runs the loop
+data/         journal.jsonl + equity.csv (written by the loop, git-tracked audit trail)
+.github/      scheduled workflow that runs the loop, every 15 min during RTH
 ```
 
 See `PLAN.md` for the day-by-day plan and `docs/strategy-spec.md` for signal + risk-gate detail.

@@ -9,7 +9,7 @@
 
 ## Estado de partida
 
-`main` está mergeado y verde: **100 tests**, `ruff` limpio, el loop corre end-to-end contra Alpaca
+`main` está mergeado y verde: **116 tests**, `ruff` limpio, el loop corre end-to-end contra Alpaca
 vía CLI en `dry_run`. Todo el código de las dos lanes está integrado. Lo que falta **no es código
 nuevo**, es calibración con datos reales + probar la mesa LLM + ops + entrega.
 

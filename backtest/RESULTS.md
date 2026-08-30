@@ -83,13 +83,34 @@ DAY         SYM  STRUCTURE      CREDIT  W  N   CR/W  IV/RV   PNL $
 2026-08-27  SPY  iron_condor      0.42  2  3  0.210  1.11     126
 ```
 
-**8 ganadores, 3 perdedores. Los 3 perdedores son grandes** (−$447, −$417, −$7): un movimiento
-grande atraviesa un ala. Es el perfil de pago clásico de vender primas — *"gano poco a menudo,
-pierdo mucho de vez en cuando"*. El exit manager (stop a 2× crédito, no en el replay) recortaría
-esas colas, así que el P&L real debería ser algo mejor que el held-to-expiry de +$484.
+**8 ganadores, 2 perdedores grandes, 1 scratch** (−$447, −$417, −$7): un movimiento grande atraviesa
+un ala. Es el perfil de pago clásico de vender primas — *"gano poco a menudo, pierdo mucho de vez
+en cuando"*.
+
+### El exit manager NO mejora la expectativa — corta la cola a cambio de edge
+
+El replay es held-to-expiry; el exit manager (`take_profit_frac 0.50`, `stop_multiple 2.0`) no
+está dentro. Rehaciendo los 11 trades a mano con esas reglas:
+
+- **Ganador:** el TP recompra al 50% del crédito → captura **+0.5×crédito** en vez del crédito
+  entero. Los 8 ganadores pasan de **+$1.355** a **≈ +$677**.
+- **Perdedor:** el stop recompra cuando el coste de cierre llega a 2× el crédito recibido → pérdida
+  **≈ −1.0×crédito** en vez del max loss. Los dos grandes (−$447/−$417) pasan a ≈ −$153/−$183; el
+  scratch de −$7 no dispara el stop. Total ≈ **−$343** en vez de −$871.
+- **Neto con gestión: ≈ +$334**, frente a **+$484** held-to-expiry.
+
+Con TP `+0.5×C` y stop `−1.0×C`, el **breakeven está en 66,7%** de acierto. El backtest dio
+**72,7%** (8/11, n=11 — intervalo enorme). **La gestión mecánica cuesta ~31% del P&L bruto a cambio
+de topar el peor caso por trade en ~−1×crédito.** Eso es lo correcto para un libro de vol corta —
+la ruina viene de las colas, no de la media— pero hay que decirlo así: *no* es una palanca de P&L.
+
+> Ojo: esto es una reconstrucción sobre valores terminales. No sabemos el *camino* del débito
+> intradía, así que no podemos saber si un ganador habría tocado el TP antes de expirar sin valor,
+> ni si un perdedor habría tocado el stop antes del max loss. Es un orden de magnitud, no una cifra.
 
 Nota: los trades se agrupan en junio y luego se secan. Julio–agosto solo dio 3 señales en 40
-sesiones. **En la ventana real (lun 31 – jue 3) esperamos ~2–4 trades**, y podrían ser 0.
+sesiones. **En la ventana real (lun 31 – jue 3) esperamos ~2–4 trades**, y podrían ser 0 —
+lo que sitúa la equity del jueves en una banda de **±$400** alrededor de los $100k.
 
 ---
 

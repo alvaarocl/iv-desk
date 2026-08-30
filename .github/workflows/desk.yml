@@ -28,6 +28,9 @@ env:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # The loop is a ~1-2 min job; the debate has its own wall-clock budget. Cap it so a hung run
+    # cannot sit on the `desk-loop` concurrency group for the rest of the session.
+    timeout-minutes: 10
     env:
       ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
       ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
@@ -35,7 +38,9 @@ jobs:
       # LLM desk — Featherless only (Anthropic dropped: no out-of-pocket spend).
       FEATHERLESS_API_KEY: ${{ secrets.FEATHERLESS_API_KEY }}
       FEATHERLESS_MODELS: ${{ vars.FEATHERLESS_MODELS }}
-      FEATHERLESS_BASE_URL: ${{ vars.FEATHERLESS_BASE_URL }}
+      # An unset repo variable arrives as "" (not absent), so os.environ.get's default never
+      # fires — the fallback has to live here too. debate.py also treats "" as absent.
+      FEATHERLESS_BASE_URL: ${{ vars.FEATHERLESS_BASE_URL || 'https://api.featherless.ai/v1' }}
       # empty = Bull/Bear/Desk Head reuse the first FEATHERLESS_MODELS entry (see agent/debate.py)
       FEATHERLESS_ARGUER_MODEL: ${{ vars.FEATHERLESS_ARGUER_MODEL }}
       # `off` bypasses the seats and passes the deterministic decision through — the escape hatch
