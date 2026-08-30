@@ -427,3 +427,57 @@ def test_arguer_model_can_be_overridden(monkeypatch):
     monkeypatch.setenv("FEATHERLESS_ARGUER_MODEL", "big/reasoner")
 
     assert debate.DeskClients.build().arguer.model == "big/reasoner"
+
+
+# ------------------------------------------------------- adversarial debate (Bull/Bear fix)
+
+
+def test_bear_is_shown_the_bull_case_to_rebut():
+    """The 30 Aug live test returned two near-identical arguments: same model, temperature 0,
+    prompts one word apart, run in parallel. A debate needs the second speaker to hear the first."""
+    c = clients([quant_json()] * 3, happy_arguer())
+    debate.review_open(FakeSignal(), SELECTION, 2, "t", clients=c, budget_s=5.0)
+
+    prompts = {seat: user for seat, user in c.arguer.calls}
+    assert "BULL seat has already argued" in prompts["bear"]
+    assert "Dealers are long gamma" in prompts["bear"], "el texto real del Bull debe ir dentro"
+    assert "already argued" not in prompts["bull"], "el Bull habla primero, no refuta a nadie"
+
+
+def test_the_two_seats_are_given_opposite_theses_not_just_labels():
+    """The old prompts were `_ARGUER_SYSTEM.replace("ROLE", "Bull"/"Bear")` — one word apart,
+    with nothing telling either seat what to conclude."""
+    assert "HOLDS OR RISES" in seats.BULL_SYSTEM
+    assert "FALLS or breaks lower" in seats.BEAR_SYSTEM
+    assert seats.BULL_SYSTEM.replace("Bull", "X") != seats.BEAR_SYSTEM.replace("Bear", "X")
+
+
+def test_bear_still_runs_when_bull_fails():
+    c = clients([quant_json()] * 3, {**happy_arguer(), "bull": RuntimeError("provider down")})
+    debate.review_open(FakeSignal(), SELECTION, 2, "t", clients=c, budget_s=5.0)
+
+    seats_called = [seat for seat, _ in c.arguer.calls]
+    assert "bear" in seats_called, "un Bull caído no puede llevarse al Bear por delante"
+    prompts = {s: u for s, u in c.arguer.calls}
+    assert "already argued" not in prompts["bear"], "sin Bull válido, el Bear argumenta en el vacío"
+
+
+def test_identical_arguments_are_flagged_as_degenerate():
+    same = seats.Argument(role="bull", ok=True, argument="SPY holds. IV is rich.", confidence=0.6)
+    twin = seats.Argument(role="bear", ok=True, argument="SPY holds. IV is rich.", confidence=0.6)
+    opposed = seats.Argument(role="bear", ok=True,
+                             argument="Gamma flips negative and the tape trends straight through "
+                                      "the short put; realised vol is understated.", confidence=0.6)
+
+    assert debate.adversarial_ratio(same, twin) == 1.0
+    assert debate.adversarial_ratio(same, twin) >= debate.DEGENERATE_SIMILARITY
+    assert debate.adversarial_ratio(same, opposed) < debate.DEGENERATE_SIMILARITY
+
+
+def test_the_journal_records_whether_the_debate_was_actually_adversarial():
+    out = run([quant_json()] * 3, happy_arguer())
+    quality = [r for r in out.to_record()["transcript"] if r.get("seat") == "debate_quality"]
+
+    assert len(quality) == 1
+    assert "bull_bear_similarity" in quality[0]
+    assert isinstance(quality[0]["adversarial"], bool)
