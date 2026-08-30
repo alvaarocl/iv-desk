@@ -47,6 +47,7 @@ import threading
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from difflib import SequenceMatcher
 from typing import Any
 
 from dotenv import load_dotenv
@@ -58,8 +59,10 @@ load_dotenv()          # so this module works standalone, not only via `desk.py`
 
 DEFAULT_BUDGET_S = 90.0
 QUANT_SHARE = 0.35      # fraction of the budget the ensemble may spend (it runs in parallel)
-ARGUER_SHARE = 0.30     # Bull and Bear also run in parallel
+ARGUER_SHARE = 0.30     # Bull and Bear run SEQUENTIALLY: Bear rebuts Bull (see _run_arguers)
 MIN_SEAT_TIMEOUT = 5.0
+# Above this text overlap Bull and Bear are saying the same thing and the debate is decorative.
+DEGENERATE_SIMILARITY = 0.80
 
 
 # --------------------------------------------------------------------------- wiring
@@ -241,7 +244,11 @@ def review_open(
     # --- seats 2 & 3: Bull and Bear (parallel, must cite the signal) ----------------------
     a_timeout = clock.seat_timeout(ARGUER_SHARE)
     bull, bear = _run_arguers(clients.arguer, signal, selection, cap, a_timeout)
-    transcript.extend([bull.to_record(), bear.to_record()])
+    similarity = adversarial_ratio(bull, bear)
+    transcript.extend([bull.to_record(), bear.to_record(),
+                       {"seat": "debate_quality", "ok": True,
+                        "bull_bear_similarity": round(similarity, 3),
+                        "adversarial": similarity < DEGENERATE_SIMILARITY}])
     if not (bull.ok and bear.ok):
         bad = ", ".join(f"{a.role}: {a.error}" for a in (bull, bear) if not a.ok)
         return _stand_down(f"debate_incomplete: {bad}", cap, base_thesis, clock, started,
@@ -339,17 +346,44 @@ def _run_quant(members: list[tuple[str, SeatClient]], signal: Any, selection: di
 
 def _run_arguers(client: SeatClient, signal: Any, selection: dict, cap: int,
                  timeout: float) -> tuple[Argument, Argument]:
-    running = {
-        role: _spawn(lambda r=role: seats.argue(client, r, signal, selection, cap, timeout))
-        for role in ("bull", "bear")
-    }
+    """Bull first, then Bear rebutting Bull. Sequential on purpose.
+
+    Run in parallel the two seats answer the same question in isolation, and with one model at
+    temperature 0 over near-identical prompts they return near-identical text — which is what
+    the 30 Aug live test produced. A debate needs the second speaker to have heard the first.
+
+    Each seat gets half the arguer budget. If Bull fails or times out, Bear still runs; it just
+    argues into the void, which is no worse than the old behaviour.
+    """
+    half = max(timeout / 2, MIN_SEAT_TIMEOUT)
     deadline = time.monotonic() + timeout
-    out = {
-        role: _collect(task, deadline - time.monotonic(),
-                       lambda err, r=role: Argument(role=r, ok=False, error=err))
-        for role, task in running.items()
-    }
-    return out["bull"], out["bear"]
+
+    bull = _collect(_spawn(lambda: seats.argue(client, "bull", signal, selection, cap, half)),
+                    min(half, deadline - time.monotonic()),
+                    lambda err: Argument(role="bull", ok=False, error=err))
+
+    left = deadline - time.monotonic()
+    if left <= 0:
+        return bull, Argument(role="bear", ok=False, error="arguer budget exhausted by bull")
+
+    bear = _collect(
+        _spawn(lambda: seats.argue(client, "bear", signal, selection, cap, min(half, left),
+                                   opponent=bull if bull.ok else None)),
+        min(half, left),
+        lambda err: Argument(role="bear", ok=False, error=err))
+    return bull, bear
+
+
+def adversarial_ratio(bull: Argument, bear: Argument) -> float:
+    """How different the two cases actually are, 0..1. 1.0 means identical text.
+
+    A Bull and a Bear arguing opposite theses should never converge. When they do, the seat is
+    broken rather than the market being unusually clear, so the number goes in the journal
+    instead of being silently averaged away by the Desk Head.
+    """
+    if not (bull.ok and bear.ok):
+        return 0.0
+    return SequenceMatcher(None, bull.argument.lower(), bear.argument.lower()).ratio()
 
 
 # --------------------------------------------------------------------------- debug helper

@@ -255,10 +255,13 @@ def consensus(ballots: list[QuantBallot], n_models: int, expected_structure: str
 
 # --------------------------------------------------------------------------- Bull / Bear
 
-_ARGUER_SYSTEM = (
-    "You are the ROLE seat on a systematic options desk, arguing the direction of the "
-    "underlying over the life of a short-dated trade. You are NOT deciding whether to trade and "
-    "you have no say over size — you supply one side of the argument, honestly and briefly.\n"
+_ARGUER_BASE = (
+    "You are a seat on a systematic options desk. You are NOT deciding whether to trade and you "
+    "have no say over size — you supply ONE side of a two-sided argument.\n"
+    "You are an advocate, not an analyst. Do not present a balanced view, do not conclude that "
+    "the other side may also be right, and do not hedge into neutrality: the desk gets balance "
+    "from hearing BOTH seats, not from either one of them equivocating. Put the strongest "
+    "honest case for your assigned side. `key_risk` is the one place you concede anything.\n"
     "Hard requirement: every claim must be anchored to the numeric SIGNAL fields you are given. "
     "Cite the exact field names you used in `cited_fields`; at least two, and only names that "
     "actually exist in the SIGNAL object. Do not invent data you were not given — you have no "
@@ -268,8 +271,21 @@ _ARGUER_SYSTEM = (
     '"confidence": <0..1>, "key_risk": "<the strongest point against your own case>"}'
 )
 
-BULL_SYSTEM = _ARGUER_SYSTEM.replace("ROLE", "Bull")
-BEAR_SYSTEM = _ARGUER_SYSTEM.replace("ROLE", "Bear")
+# The two seats must be given different THESES, not different labels. The previous version was
+# `_ARGUER_SYSTEM.replace("ROLE", "Bull"/"Bear")` — one word apart, with nothing telling either
+# seat what to conclude. Same model, same temperature=0.0, same user prompt: the live test on
+# 30 Aug returned two near-identical arguments, which is exactly what deterministic decoding
+# over near-identical inputs should be expected to produce. See issue "Bull/Bear no adversarial".
+BULL_SYSTEM = (
+    "You are the Bull seat. Your assigned thesis: the underlying HOLDS OR RISES over the "
+    "life of this trade, so the downside strikes are the safe end of the structure. Argue for "
+    "that and only that.\n" + _ARGUER_BASE
+)
+BEAR_SYSTEM = (
+    "You are the Bear seat. Your assigned thesis: the underlying FALLS or breaks lower over "
+    "the life of this trade, so the downside strikes are the ones at risk. Argue for that and "
+    "only that.\n" + _ARGUER_BASE
+)
 
 
 @dataclass
@@ -289,16 +305,27 @@ class Argument:
                 "key_risk": self.key_risk, "error": self.error, "raw": self.raw[:600]}
 
 
-def arguer_prompt(signal: Any, selection: dict, cap_contracts: int) -> str:
+def arguer_prompt(signal: Any, selection: dict, cap_contracts: int,
+                  opponent: Argument | None = None) -> str:
     facts = signal_facts(signal)
+    rebuttal = ""
+    if opponent is not None and opponent.ok and opponent.argument:
+        # The second seat argues against a real position instead of into the void. Without this
+        # both seats answer the same question in isolation and there is no adversarial pressure.
+        rebuttal = (f"\nThe {opponent.role.upper()} seat has already argued:\n"
+                    f"\"{opponent.argument}\"\n"
+                    f"(it cited {opponent.cited_fields} at confidence {opponent.confidence:.2f})\n"
+                    "Your argument must engage with that case directly — name where it is weak or "
+                    "what it leaves out — not restate the same reading in different words.\n")
     return (f"SIGNAL fields you may cite: {sorted(facts)}\n\n"
             f"SIGNAL:\n{json.dumps(facts, indent=2, default=str, sort_keys=True)}\n\n"
-            f"PROPOSED TRADE:\n{_trade_block(signal, selection, cap_contracts)}\n\n"
+            f"PROPOSED TRADE:\n{_trade_block(signal, selection, cap_contracts)}\n"
+            f"{rebuttal}\n"
             "Make your case. JSON only.")
 
 
 def argue(client: SeatClient, role: str, signal: Any, selection: dict, cap_contracts: int,
-          timeout: float) -> Argument:
+          timeout: float, opponent: Argument | None = None) -> Argument:
     """Run the Bull or Bear seat. Never raises; `ok=False` means the seat is unusable.
 
     An argument that cites fewer than two real `Signal` fields is rejected: the whole point of
@@ -309,7 +336,7 @@ def argue(client: SeatClient, role: str, signal: Any, selection: dict, cap_contr
     raw = ""
     try:
         raw = client.complete(system=system,
-                              user=arguer_prompt(signal, selection, cap_contracts),
+                              user=arguer_prompt(signal, selection, cap_contracts, opponent),
                               max_tokens=ARGUER_MAX_TOKENS, timeout=timeout)
         obj = parse_json_object(raw)
         text = _str_field(obj, "argument")
