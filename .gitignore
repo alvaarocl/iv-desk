@@ -13,3 +13,4 @@ backtest/cache/
 video/node_modules/
 video/out/*
 !video/out/iv-desk-presentation.mp4
+!video/out/IVDESK-UC3M.mp4
