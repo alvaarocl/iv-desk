@@ -22,9 +22,9 @@ favour it (**dealer gamma** positive). It trades defined-risk structures (mostly
 close before expiry), and enforces hard risk gates (per-trade risk cap, daily circuit breaker,
 drawdown throttle, macro-event blackout). On top of the deterministic engine sits an **LLM "desk"** of
 named agents (Quant / Bull / Bear / Desk Head) that debate each new position and write a falsifiable
-thesis — logged to a falsifiable public journal (`data/journal.jsonl`), and, *if there is time*, shown
-on a live dashboard (the LLM desk is not built yet; the dashboard is optional — the rules say no UI is
-required).
+thesis — logged to a falsifiable public journal (`data/journal.jsonl`), and shown on a live dashboard
+(the LLM desk is built and wired into the loop; the dashboard is a single static page on GitHub
+Pages — optional, the rules say no UI is required).
 
 Everything runs on Alpaca's **paper** environment. No real money.
 
@@ -49,14 +49,14 @@ Everything runs on Alpaca's **paper** environment. No real money.
 | `PLAN.md` | Day-by-day task checklist with a cut-list |
 | `probes/` | Day-0 API de-risking scripts + `RESULTS.md` (findings that locked our design decisions) |
 | `agent/` | The trading engine (see below) |
-| `dashboard/` | Live "trading floor" (Next.js / Vercel) — **not built yet** |
+| `dashboard/` | Single static `index.html` on GitHub Pages, reads `data/` live — https://alvaarocl.github.io/iv-desk/ |
 | `.github/workflows/desk.yml` | Scheduled loop, every 15 min during market hours |
 
 ### `agent/` modules
 
 | Module | Responsibility | State |
 |---|---|---|
-| `broker.py` | Trading API client (account, orders, `mleg`, positions, cancel) | ⚠️ works as REST; **migrate to Alpaca CLI shell-outs** (see decisions) |
+| `broker.py` | Trading API client (account, orders, `mleg`, positions, cancel) | ✅ shells out to the Alpaca CLI (`_cli()` → `alpaca api METHOD /path`); `limit_price` signed, zero rejected |
 | `marketdata.py` | Option chain snapshots (greeks + IV), option contracts (open interest), stock bars | ✅ tested live |
 | `signal.py` | Deterministic signal: RV forecast, VRP **ratio**, normalized GEX, regime, skew, `stand_down` reason → `Signal` | ✅ runs; **thresholds provisional** pending the backtest |
 | `execution.py` | Strike selection (condor + vertical), sizing, deterministic exit manager, trade log | ✅ runs; exit manager untested on a real position |
@@ -64,7 +64,7 @@ Everything runs on Alpaca's **paper** environment. No real money.
 | `calendar.py` | Static macro-event calendar for the blackout gate (NFP, ISM, etc.) | ✅ done; verify dates |
 | `desk.py` | Main loop: exits → gates → signal per name → open decision → journal | ✅ dry-run works |
 | `journal.py` | Append-only decision log (`data/journal.jsonl`) + equity curve + prediction ledger | ✅ done |
-| `seats.py` / `debate.py` | LLM desk: Quant ensemble / Bull / Bear / Desk Head, only on open decisions | 🚧 built 29 Aug, **not yet wired into `desk.py`** |
+| `seats.py` / `debate.py` | LLM desk: Quant ensemble / Bull / Bear / Desk Head, only on open decisions | ✅ built + **wired into `desk.py:248`**; 100% Featherless; can only trim or veto `n`, never widen |
 
 ---
 
@@ -106,10 +106,10 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 - **Greeks + IV:** taken from Alpaca snapshots. No Black-Scholes engine.
 - **Open interest:** only on `/v2/options/contracts`, dated T-2. Used for GEX (regime signal only, approximate is fine).
 - **DTE:** prefer 1–3 days. 0DTE only with wider stop buffers.
-- **Transport:** order placement goes through the **Alpaca CLI** (`alpacahq/cli`) — the rules require
-  MCP or CLI, and the CLI is built for cron agents. `httpx` REST (`agent/marketdata.py`) is used for
-  market-data reads only. *(changed 29 Aug after Alpaca's official guidelines; `agent/broker.py` still
-  needs to be migrated from REST to CLI shell-outs.)*
+- **Transport:** order placement goes through the **Alpaca CLI** (`alpacahq/cli`, pinned `v0.0.14`) —
+  the rules require MCP or CLI, and the CLI is built for cron agents. `agent/broker.py` shells out via
+  `_cli()`; `httpx` REST (`agent/marketdata.py`) is used for market-data reads only. *(migration done
+  29 Aug, issue #4 closed.)*
 - **Universe:** SPY, QQQ, IWM. All have daily expirations through the competition window.
 - **Risk posture:** a single consistent core book. The directional satellite sleeve was removed on
   29 Aug (issue #14) — it was never implemented and `satellite_frac` was never read.

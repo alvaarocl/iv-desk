@@ -1,4 +1,4 @@
-# Auditoría técnica — 29 ago 2026
+# Auditoría técnica — 29 ago 2026 · estado al 30 ago
 
 Revisión completa del repo en el commit `75b9af3` (~1.150 LOC de Python). Cada hallazgo lleva fichero y línea, y el issue donde se sigue.
 
@@ -8,7 +8,25 @@ Revisión completa del repo en el commit `75b9af3` (~1.150 LOC de Python). Cada 
 
 ---
 
-## Resumen
+## Estado al 30 ago (domingo)
+
+**Los 8 P0 y los 9 P1 están cerrados en `main`.** El repo pasa a público el viernes; esta sección
+es el resumen que verá un jurado. Detalle fichero-a-fichero en cada entrada de abajo (todas llevan
+ya su marca ✅).
+
+| Severidad | Nº | Estado |
+|---|---|---|
+| **P0** | 8 | ✅ **8/8 cerrados.** Ejecución por el CLI de Alpaca (#4), `limit_price` firmado (#1), exit manager en $/lote con replay harness (#2), `client_order_id` + `reconcile` contra Alpaca (#3), estrategia calibrada con 60 sesiones reales (#5/#6/#7), barras diarias paginadas (#26). |
+| **P1** | 9 | ✅ **9/9 cerrados.** 116 tests + `ruff` limpio (#9), CLI pineado `v0.0.14` con verificación de versión (#8), capa LLM construida y **cableada en `desk.py:248`** (#13), gate de liquidez + `_mid()` sin caída silenciosa a 0 (#22), `net_delta` real (#11), umbral de GEX (#10), fade-trend resuelto por decisión (#12), runbook + contingencia de cron saltado (#23/#24). |
+| **P2** | 5 | ✅ 4/5. Código muerto borrado (#14), calendario macro verificado (#17), asignación temprana mitigada y detectada por doble vía (#25). Sizing (#16) resuelto **por decisión humana**: 0.5% plano toda la semana, `max_positions=8` — ver [`VIABILIDAD.md`](VIABILIDAD.md) y `config.py:55-63`. Dependencias sin usar (#15): `anthropic`/`openai` fuera; quedan por barrer las restantes. |
+
+Deuda de documentación pendiente de barrer antes del viernes: recuento de tests coherente en los
+tres sitios (ahora **116**), `README.md` describe `dashboard/` como "Next.js" (es un `index.html`
+estático) y `data/` con ficheros que aún no existen.
+
+---
+
+## Resumen (original — 29 ago)
 
 | Severidad | Nº | Efecto si no se arregla |
 |---|---|---|
@@ -20,8 +38,13 @@ Revisión completa del repo en el commit `75b9af3` (~1.150 LOC de Python). Cada 
 
 ## P0 — bloqueantes
 
-### 1. El `limit_price` de entrada va con el signo invertido
+### 1. ~~El `limit_price` de entrada va con el signo invertido~~ ✅ RESUELTO (29 ago)
 `execution.py:158`, `broker.py:99` · issue #1
+
+> Arreglado: `execution.py:277` manda `limit_ps = -abs(credit_ps * 0.92)` (negativo = crédito), y
+> `broker.py` rechaza un `limit_price` de cero con `ValueError` — el signo transporta la dirección,
+> así que un cero es siempre un bug. Test: `test_execution.py` (límite negativo para un crédito,
+> rechazo del cero).
 
 En `order_class: mleg` el `limit_price` **va firmado**: positivo = débito, negativo = crédito (ver [`API-ALPACA.md`](API-ALPACA.md)). El código manda siempre positivo:
 
@@ -35,8 +58,12 @@ Para un condor de crédito eso significa *"acepto pagar hasta $1.10 de débito"*
 
 El signo de **salida sí está bien** (`max(debit * 1.08, 0.01)` — recomprar es un débito).
 
-### 2. Bug de unidades en el exit manager
+### 2. ~~Bug de unidades en el exit manager~~ ✅ RESUELTO (29–30 ago)
 `execution.py:170-186` · issue #2
+
+> Arreglado: convención `_ps` (por acción) documentada en `execution.py:7`; `entry_credit` y los
+> umbrales `take`/`stop` ahora están en la misma unidad. Cubierto por `tests/test_exit_manager_replay.py`
+> (take-profit dispara una sola vez, stop a 2× crédito, cierre por expiración desde las 15:30 ET).
 
 `entry_credit` está en **dólares** (`credit * 100`), pero `_combo_cost_to_close()` devuelve precio **por acción** (~1.20):
 
@@ -47,8 +74,15 @@ if debit <= take:                                # 1.20 <= 60  → SIEMPRE ciert
 
 Toda posición se marca como take-profit en el primer loop tras abrirse. El `pnl` calculado es fantasía. Coherente con que `STATUS.md` admita que el exit manager nunca se probó sobre una posición real.
 
-### 3. Se asume el fill y el estado vive en un `git push || true`
+### 3. ~~Se asume el fill y el estado vive en un `git push || true`~~ ✅ RESUELTO (29 ago)
 `execution.py:151-160`, `.github/workflows/desk.yml:47` · issue #3
+
+> Arreglado en tres frentes: `_client_order_id()` determinista por intención de trade
+> (`execution.py:209`) → un re-run no duplica; `_await_fill()` (`execution.py:223`) no marca `open`
+> hasta confirmar ejecución; `reconcile()` (`execution.py:298`) reconstruye el libro desde
+> `broker.positions()`/`orders()` en cada arranque — Alpaca es la fuente de verdad, `trades.jsonl`
+> es un journal. Y el `git push` del workflow ya no es best-effort: `desk.yml:93-97` hace
+> `pull --rebase` y reintenta 3 veces, con `exit 1` si no lo consigue.
 
 Tres problemas encadenados que producen **posiciones duplicadas o fantasma**:
 
@@ -58,10 +92,15 @@ Tres problemas encadenados que producen **posiciones duplicadas o fantasma**:
 
 El repricing que promete `strategy-spec.md` ("reprice cada 30s, máx 3 pasos") no está implementado.
 
-### 4. No cumplimos el requisito técnico del hackathon
+### 4. ~~No cumplimos el requisito técnico del hackathon~~ ✅ RESUELTO (29 ago)
 `broker.py` completo · issue #4 · ver [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md)
 
 Las reglas exigen Trading API **+ MCP o CLI**. `broker.py` es REST puro; el CLI se instala en el workflow y no se usa jamás; el MCP no existe. **Es elegibilidad, no una mejora.**
+
+> Arreglado (commit `30bbeb1`): `broker.py:38 _cli()` shell-out a `alpaca api METHOD /path` por
+> `subprocess` para **toda** la Trading API (cuenta, clock, posiciones, órdenes, `mleg`, cancelaciones).
+> `marketdata.py` sigue en REST `httpx`, que es la excepción permitida (solo lecturas de datos de
+> mercado). El workflow instala y **verifica** el CLI pineado a `v0.0.14` (`desk.yml:69-74`).
 
 ### 5. ~~La estrategia probablemente no dispara nunca~~ ✅ CONFIRMADO Y CORREGIDO (29 ago)
 issue #5 · `backtest/replay.py`
@@ -133,15 +172,24 @@ avisa: devuelve un número plausible. **Invalidaba parcialmente la calibración 
 
 ## P1 — robustez
 
-### 8. El CLI está pineado a `latest` de un binario en Alpha
+### 8. ~~El CLI está pineado a `latest` de un binario en Alpha~~ ✅ RESUELTO (29 ago)
 `.github/workflows/desk.yml:33-36` · issue #8
 
 Se descarga `releases/latest` en cada ejecución del cron — 26 veces al día durante 4 días. El README de `alpacahq/cli` avisa: *"Do not depend on current behavior in production workflows."* Un release a mitad de semana rompe el loop en silencio.
 
-### 9. Cero tests
+> Arreglado: `desk.yml:26` pinea `ALPACA_CLI_VERSION: "0.0.14"`, se cachea por clave de versión, y
+> `desk.yml:69-74` hace un assert duro (`exit 1`) si `alpaca version` no imprime exactamente ese pin.
+
+### 9. ~~Cero tests~~ ✅ RESUELTO (29–30 ago)
 issue #9
 
 No existe `tests/`, hay **0 funciones `test_`**, y `pyproject.toml` declara `testpaths = ["agent", "tests"]`. `CONTRIBUTING.md` pide `pytest -q` antes de mergear: pasa vacío, siempre. Un solo test habría cazado #2.
+
+> Arreglado: **116 tests** en 10 ficheros, `ruff` limpio, sin red y sin claves (la mesa se prueba
+> con dobles inyectados). `test_debate.py` cubre el contrato de seguridad de la capa LLM (la
+> inyección de prompt no puede subir el cap, el chain nunca llega al prompt, timeouts de proveedor);
+> `test_exit_manager_replay.py` es el harness de replay del exit manager. Sigue sin haber un test
+> end-to-end de `desk.run_once()` — asumido.
 
 ### 10. ~~GEX: solo se usa el signo, falta umbral~~ ✅ RESUELTO (29 ago)
 `signal.py:210` · issue #10
@@ -174,19 +222,31 @@ Además `_adx()` (`signal.py:126`) devuelve un DX puntual, no un ADX suavizado �
 > convirtiendo un presupuesto de 90 s en un cuelgue de 30 s+ en un cron de 15 minutos.
 
 
-Es **el diferenciador del proyecto** y está sin construir. `anthropic` y `openai` en `pyproject.toml` con cero imports. Sin esto somos un bot determinista más y perdemos el eje de Creativity.
+Era **el diferenciador del proyecto** y estaba sin construir. Ya no: la mesa (Quant ensemble ×3 con
+mayoría estricta, Bull/Bear adversariales, Desk Head con predicción falsable) corre 100% sobre
+Featherless y está cableada en `desk.py:248`. `anthropic`/`openai` fuera de `pyproject.toml` (#31).
 
-### 20. Falta el gate de liquidez y `_mid()` devuelve 0.0 en silencio
+### 20. ~~Falta el gate de liquidez y `_mid()` devuelve 0.0 en silencio~~ ✅ RESUELTO (29 ago)
 `execution.py:52-58`, `execution.py:71-92` · issue #22
 
 `_mid()` cae a `t.get("p", 0.0)` cuando un contrato no tiene quote ni trade — pasa en strikes lejanos con `feed=indicative`. Ese **cero se propaga al crédito**, y de ahí al sizing y al `max_loss`. Puede inflar contratos o colar un trade con datos basura.
 
 Y el gate de liquidez que exige `strategy-spec.md` (`OI > 500`, spread `< 10%` del mid, ambas patas) **no está implementado** en `select_condor()` ni en `select_vertical()`. El OI ya está en memoria para el GEX, así que el filtro es casi gratis.
 
-### 21. No hay plan si el cron se salta una ejecución
+> Arreglado: `_mid()` ya no cae a 0 en silencio (test `test_execution.py`: "mid never falls back to
+> 0"); `select_condor()`/`select_vertical()` aplican `MIN_OI = 500` y `MAX_SPREAD_FRAC = 0.10` en
+> ambas patas (`execution.py:33-34`).
+
+### 21. ~~No hay plan si el cron se salta una ejecución~~ ✅ RESUELTO (29 ago)
 `.github/workflows/desk.yml` · issue #23
 
 Los `schedule:` de GitHub Actions son **best-effort**. Si no corre el run de las 15:45 ET, una posición en expiración se va a expiración con riesgo de pin y asignación. No hay kill switch documentado ni forma trivial de ver la última ejecución. **La robustez del workflow es un eje explícito del jurado** y ahora mismo no tenemos respuesta a la pregunta obvia.
+
+> Arreglado: el cierre por expiración dispara en **cualquier** run desde las 15:30 ET, no solo a
+> las 15:45 (`execution.py:411-412`); `reconcile()` en cada arranque resuelve el estado real; el
+> `client_order_id` determinista impide que un re-run duplique. Kill switch (`DESK_MODE=exits_only`)
+> y árbol de incidentes documentados en [`docs/RUNBOOK.md`](RUNBOOK.md). `timeout-minutes: 10` en el
+> job para que un run colgado no bloquee la cola.
 
 ### 22. ~~No existe runbook para las sesiones en vivo~~ ✅ RESUELTO (29 ago)
 issue #24 · **`docs/RUNBOOK.md` creado**
@@ -208,10 +268,16 @@ issue #24 · **`docs/RUNBOOK.md` creado**
 
 Cero imports de: `alpaca-py`, `pandas`, `scipy`, `openai`, `pydantic`, `rich`, `anthropic`. Solo se usan `numpy`, `httpx` y `python-dotenv`. Declarar el **SDK oficial de Alpaca y no usarlo**, en un hackathon de Alpaca, es justo el detalle que un juez mira.
 
-### 16. El sizing no puede puntuar, pero sí puede perder
+### 16. ~~El sizing no puede puntuar, pero sí puede perder~~ ✅ DECIDIDO (30 ago) — decisión humana, no bug
 `config.py:32` · issue #16
 
 0.5% de $100k = $500/trade → **1 contrato** → ~$120 de crédito. Con 3 posiciones en 4 sesiones el mejor escenario posible es ~0.3% de retorno. Pero el max loss del condor son $280 y una rotura se come dos ganadores. **Cedemos el upside y conservamos el downside.** Ver [`VIABILIDAD.md`](VIABILIDAD.md).
+
+> Resuelto por decisión de equipo (opción c de `VIABILIDAD.md`): **frecuencia > tamaño**.
+> `risk_per_trade` 0.5% **plano toda la semana** (sin rampa lunes→martes), `max_positions` 6 → 8.
+> Más trades pequeños de riesgo definido = más transcripts de debate y una curva de equity con
+> textura, con el downside topado por `max_portfolio_risk` 0.10. No se persigue el eje de P&L
+> (4 sesiones son una lotería de varianza); ver `config.py:55-63` y `backtest/RESULTS.md`.
 
 ### 17. ~~Riesgo de asignación temprana en patas cortas ITM~~ ✅ MITIGADO (29 ago)
 `execution.py:180-182` · issue #25

@@ -2,6 +2,14 @@
 
 Revised 29 Aug after Alpaca's official guidelines (see `docs/STATUS.md` → "Official rules").
 
+> **Estado al 30 ago:** todo lo de Sat 29 y Sun 30 está hecho y en `main` — cuenta de competición
+> creada y verificada ($100k, L3, cero histórico), cupón Featherless redimido, ejecución migrada al
+> CLI, mesa LLM construida y **cableada** (`desk.py:248`), `net_delta` real, backtest con 60 sesiones
+> reales, calibración fijada (`vrp_ratio_min 1.05`, `gex_min 0.03`), 116 tests + `ruff` limpio, CI
+> en `dry_run` contra UC3M en verde, dashboard desplegado, vídeo v1 renderizado. Las casillas de
+> abajo se dejan como registro; lo que queda vivo es **go-live el lunes** y **entrega el viernes**.
+> El tracker real es `docs/STATUS.md`.
+
 **Todas las fechas, con hora CEST y ET, en [`docs/CALENDARIO.md`](docs/CALENDARIO.md).** Qué hacer
 durante las sesiones en vivo: [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
@@ -48,9 +56,11 @@ Team of 2. Lanes: **(A) agent · (B) dashboard (optional) · (C) content/write-u
 - [ ] Redeem Featherless coupon `ALPACA26` → `FEATHERLESS_API_KEY`.
 - [ ] **A:** switch `execution.py` order placement to shell out to the `alpaca` CLI. Keep `marketdata.py`
       REST for reads (or move to `alpaca data option` too). Install the CLI Windows binary, `alpaca doctor`.
-- [ ] **A:** build the LLM desk — Quant ensemble (Featherless, 3 models, consensus) + Bull / Bear /
-      Desk Head (Anthropic). Wire into `desk.py` as the open-position decision step. Debate only on opens.
-- [ ] **A:** decide adaptive vs strict (recommend adaptive), set provisional params.
+- [ ] **A:** build the LLM desk — Quant ensemble + Bull / Bear / Desk Head, **100% Featherless**
+      (Anthropic dropped, #31 — no out-of-pocket spend). Wire into `desk.py` as the open-position
+      decision step. Debate only on opens.
+- [ ] **A:** decide adaptive vs strict. **Decided (#12): strict — stand down in a trending tape**
+      (`fade_trend=False`). Fading a trend with short premium is how short-vol books die.
 - [ ] **A:** portfolio net-delta aggregation (replace the `0.0` stub).
 - [ ] **C:** README disclosure paragraph (pre-event scaffolding). Draft `docs/write-up.md`.
 - [ ] Social post #1: what we're building, why VRP/gamma not RSI.
@@ -73,15 +83,17 @@ Team of 2. Lanes: **(A) agent · (B) dashboard (optional) · (C) content/write-u
 - [ ] 09:00 ET (**15:00 CEST**): run the startup checklist in [`docs/RUNBOOK.md`](docs/RUNBOOK.md) —
       flip workflow `DESK_MODE=live`, competition account, confirm fresh $100k and zero history,
       confirm the secrets are `PA39HSCQE8S3`'s and not the testing account's.
-- [ ] Conservative sizing: 0.5% NAV risk/trade, max 3 positions. Expirations Sep 1–3.
+- [ ] Sizing per the closed decision (#16): **0.5% NAV risk/trade, flat all week**, `max_positions=8`.
+      Downside capped by `max_portfolio_risk=0.10`. Expirations Sep 1–3.
 - [ ] Watch **every** 15-min invocation. Log every incident in `docs/RUNBOOK.md` → *Log de
       incidentes* (it is write-up material on the robustness axis). Fix fast.
 - [ ] **C:** social post #3 — "we're live", first fills.
 
 ## Tue 1 Sep — P&L day 2
 
-- [ ] Scale to target sizing (1–2% NAV, max 5–6) only if Monday was clean.
-- [ ] First nightly reflection (optional).
+- [ ] **No sizing ramp.** The Mon→Tue scale-up was dropped (#16): `risk_per_trade` stays 0.5% flat
+      all week. If Monday was clean, the only change is being *less selective*, not bigger.
+- [ ] Nightly reflection / auto-tuning: **cut** (cut-list item 2). Params are not touched mid-week.
 - [ ] **C:** social post #4 — first real P&L update. **B:** dashboard if on track.
 
 ## Wed 2 Sep — P&L day 3

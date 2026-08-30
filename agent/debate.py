@@ -77,7 +77,9 @@ class DeskClients:
     @classmethod
     def build(cls) -> DeskClients:
         """Construct real provider clients from env. Raises `seats.SeatError` if unconfigured."""
-        base = os.environ.get("FEATHERLESS_BASE_URL", "https://api.featherless.ai/v1").strip()
+        # `.get(k, default)` does not fire the default when the var is present-but-empty, which is
+        # exactly how an unset GitHub Actions repo variable arrives. Treat "" as absent.
+        base = os.environ.get("FEATHERLESS_BASE_URL", "").strip() or "https://api.featherless.ai/v1"
         key = os.environ.get("FEATHERLESS_API_KEY", "").strip()
         models = [m.strip() for m in os.environ.get("FEATHERLESS_MODELS", "").split(",")
                   if m.strip()][:seats.MAX_QUANT_MODELS]

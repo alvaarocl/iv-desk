@@ -429,6 +429,20 @@ def test_arguer_model_can_be_overridden(monkeypatch):
     assert debate.DeskClients.build().arguer.model == "big/reasoner"
 
 
+@pytest.mark.parametrize("base_url", ["", "   "])
+def test_empty_base_url_falls_back_to_featherless(monkeypatch, base_url):
+    """An unset GitHub Actions repo variable arrives as "" — the default must still apply, or
+    OpenAI(base_url="") makes every seat call fail and the desk stands down all session."""
+    monkeypatch.setenv("FEATHERLESS_API_KEY", "fake")
+    monkeypatch.setenv("FEATHERLESS_MODELS", "a/1,b/2,c/3")
+    monkeypatch.setenv("FEATHERLESS_BASE_URL", base_url)
+
+    built = debate.DeskClients.build()
+
+    assert built.arguer.base_url == "https://api.featherless.ai/v1"
+    assert all(c.base_url == "https://api.featherless.ai/v1" for _, c in built.quant)
+
+
 # ------------------------------------------------------- adversarial debate (Bull/Bear fix)
 
 
