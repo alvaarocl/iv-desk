@@ -1,16 +1,29 @@
 # Estado del proyecto
 
-Última actualización: **30 ago 2026** (domingo, lane `lane/senal-finde`). Este archivo se actualiza a
-mano según avanza el trabajo. Plan del fin de semana en [`PLAN-FINDE.md`](PLAN-FINDE.md).
+Última actualización: **30 ago 2026** (domingo tarde). Este archivo se actualiza a mano.
+Plan del fin de semana en [`PLAN-FINDE.md`](PLAN-FINDE.md).
 
 ---
 
-## Dónde estamos, en tres líneas
+## Dónde estamos
 
-**`main` está mergeado y verde: 100 tests, `ruff` limpio, y el loop corre end-to-end contra Alpaca
-por el CLI en `dry_run`.** Las dos lanes (señal y ejecución) están integradas: **no falta código
-nuevo**. Lo que falta es **calibrar con datos reales, probar la mesa Featherless en vivo, ops y
-entrega**.
+**Todo lo técnico está hecho y en `main`** (`e0f10aa`): 109 tests, `ruff` limpio, loop end-to-end
+por el CLI. Además de eso, ya hecho este finde:
+
+- **Calibrado con backtest real** (60 sesiones Alpaca): `vrp_ratio_min 1.05`, `gex_min 0.03`.
+  11 trades / 174 sesiones, +$484 held-to-expiry. Es **rama B** — la señal dispara poco. Detalle
+  en [`../backtest/RESULTS.md`](../backtest/RESULTS.md).
+- **Mesa LLM probada en vivo contra Featherless** — transcript real, dentro del budget, coste
+  trivial. Modelos verificados y puestos en las variables de GitHub.
+- **CI verificado**: `workflow_dispatch` en `dry_run` contra UC3M pasa (instala CLI v0.0.14,
+  autentica como `PA39HSCQE8S3`, no coloca nada, persiste el journal).
+- **Dashboard en vivo** (inglés): https://alvaarocl.github.io/iv-desk/
+- **Vídeo de la entrega listo**: `video/out/IVDESK-UC3M.mp4` (visuales Remotion + voz). Master mudo
+  en `iv-desk-presentation.mp4`. Se re-renderiza el jueves con los números reales.
+- Ventana de P&L confirmada en Discord · secrets/vars puestos · cuenta UC3M verificada ($100k, L3, cero histórico).
+
+**Tareas de Álvaro: cerradas.** Ángel cierra las suyas (código ya en `main`). Queda pulir un par de
+cosas, el go-live del lunes, y la entrega del viernes.
 
 ---
 
@@ -47,51 +60,64 @@ hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
 |---|---|
 | `agent/broker.py` | **Trading API por el CLI de Alpaca** (`alpaca api METHOD /path`): cuenta, clock, posiciones, órdenes, cancelaciones, `/v2/options/contracts`, `mleg`. `limit_price` firmado. ✅ |
 | `agent/marketdata.py` | REST de market data (permitido para lecturas): snapshots con griegas + IV, open interest, barras diarias SIP. ✅ |
-| `agent/signal.py` | VRP ratio (Yang-Zhang + EWMA vs IV ATM), GEX normalizado con zona muerta, régimen ADX/EMA, skew, y **`stand_down` con el gate que bloquea**. ✅ corre; **umbrales sin calibrar**. |
+| `agent/signal.py` | VRP ratio (Yang-Zhang + EWMA vs IV ATM), GEX normalizado con zona muerta, régimen ADX/EMA, skew, y **`stand_down` con el gate que bloquea**. ✅ **calibrado** con el backtest real (#6, #7, #10). |
 | `agent/execution.py` | Selección de strikes (condor y vertical) con gates de liquidez, sizing, exit manager determinista (50% TP / 2× stop / cierre en expiración), `client_order_id` idempotente, `reconcile`. ✅ |
 | `agent/risk.py` | Risk Officer: todos los gates, sin discrecionalidad. `evaluate()` entrada única. ✅ |
 | `agent/calendar.py` | Calendario macro verificado (#17) + **blackout asimétrico 2 h antes / 45 min después** (#33). ✅ |
 | `agent/seats.py` / `agent/debate.py` | **La mesa, 100% Featherless** (#31): Quant ensemble ×3 con mayoría estricta, Bull/Bear obligados a citar campos reales, Desk Head con predicción falsable validada. Clamp al cap del Risk Officer. Kill switch `DESK_DEBATE=off`. ✅ **cableada en `desk.py`**. |
 | `agent/desk.py` | Loop completo: guardarraíl de cuenta → reconcile → salidas → gates de cartera → señal → debate → apertura → journal. ✅ end-to-end en `dry_run`. |
 | `agent/journal.py` | Journal append-only + curva de equity + hook de grading de predicciones. ✅ |
-| `backtest/replay.py` | Harness de replay para calibrar. ✅ existe; **falta correrlo con keys reales**. |
-| Tests | **100 tests**, `ruff` limpio. La mesa se testea con dobles inyectados: sin red y sin claves. ✅ |
+| `backtest/replay.py` | Harness de replay. ✅ **corrido con datos reales** → `../backtest/RESULTS.md`. |
+| Tests | **109 tests**, `ruff` limpio. La mesa se testea con dobles inyectados: sin red y sin claves. Harness de replay del exit manager incluido. ✅ |
 | `.github/workflows/desk.yml` | Cron cada 15 min en horario de mercado + `workflow_dispatch`; instala y **verifica la versión** del CLI (pin `0.0.14`). ✅ |
 | Probes Día 0 | Los 3 pasaron. `../probes/RESULTS.md`. ✅ |
-| `docs/write-up.md` | Reescrito desde el código (#34/#18): sin Anthropic, sin MCP, cada afirmación con su fichero. ✅ solo faltan los números del jueves. |
-| `docs/RUNBOOK.md`, `docs/CALENDARIO.md`, `docs/video-script.md` | ✅ hechos. Leer el runbook los dos antes del lunes. |
+| `docs/write-up.md` | Reescrito desde el código (#34/#18): sin Anthropic, sin MCP, cada afirmación con su fichero. 🔶 solo faltan los números del jueves. |
+| `docs/RUNBOOK.md`, `docs/CALENDARIO.md` | ✅ hechos. **Leer el runbook los dos antes del lunes.** |
+| `video/` | Proyecto Remotion (8 escenas, 60 fps, 3:12) + `NARRATION.md`. Vídeo final con voz: `video/out/IVDESK-UC3M.mp4`. ✅ v1 |
+| `dashboard/` | Página estática en inglés, desplegada en GitHub Pages, lee `data/` en vivo. ✅ |
 
 ---
 
 ## Qué falta
 
-### Bloquea el lunes
+### Antes del lunes — casi todo hecho
 
-| Tarea | Quién | Issue |
+| Tarea | Quién | Estado |
 |---|---|---|
-| **Calibrar con datos reales**: correr `backtest.replay` con las keys de testing, sacar la tabla del embudo y fijar `vrp_ratio_min`, `gex_min`, `short_delta`, `min_credit_frac` en `agent/config.py` con la evidencia al lado | Ángel | #5, #6, #7, #10 |
-| **Probar la mesa Featherless end-to-end** con claves reales: transcript completo en `data/journal.jsonl`, reloj real vs `DESK_DEBATE_BUDGET_S=90`, coste dentro de los $25 del cupón | Ángel | A4 |
-| Secrets y variables en GitHub con las keys de `PA39HSCQE8S3` (+ `FEATHERLESS_MODELS`, `ALPACA_ACCOUNT_ID`, `DESK_MODE`) | Álvaro | B2 |
-| `workflow_dispatch` en `dry_run` contra UC3M: confirma CLI + auth + `account=PA39HSCQE8S3` | Álvaro | B3 |
-| Verificar la cuenta UC3M `PA39HSCQE8S3` ($100k, nivel 3, cero histórico) | humano | B1 |
-| **Probar el exit manager sobre una posición real** en la cuenta de testing. `tests/test_exit_manager_replay.py` (B4) todavía **no está en esta rama**: confirmar que llega a `main` en el merge del domingo | Álvaro | B4 |
-| ~~Preguntar en Discord la ventana de P&L~~ ✅ hecho — jueves 3 EOD confirmado, expiraciones ≤ 3 sep | humano | #19 cerrado |
-| Limpiar `data/` de la sesión de testing antes del lunes (o asumirlo y anotarlo) | humano | RUNBOOK |
+| Calibrar con datos reales (`vrp_ratio_min`, `gex_min`, …) con evidencia | Álvaro (hecho por Ángel) | ✅ `../backtest/RESULTS.md` |
+| Probar la mesa Featherless end-to-end con claves reales | Álvaro | ✅ transcript real, dentro del budget |
+| Secrets + variables en GitHub (UC3M, Featherless, modelos, `DESK_MODE=dry_run`) | Álvaro | ✅ |
+| `workflow_dispatch` en `dry_run` contra UC3M | Álvaro | ✅ pasa |
+| Verificar cuenta UC3M ($100k, L3, cero histórico) | humano | ✅ |
+| Harness de replay del exit manager | Álvaro | ✅ `tests/test_exit_manager_replay.py` |
+| Ventana de P&L en Discord | humano | ✅ jueves 3 EOD, expiraciones ≤ 3 sep |
+| **Cerrar #6, #7, #10, #29–#36** — código ya en `main`, es papeleo | Ángel | ⬜ |
+| **Bull/Bear adversariales** — dieron argumentos idénticos en la prueba en vivo | Ángel | ⬜ (único con impacto real) |
+| Setup de OBS para grabar el lunes (#40) | Álvaro | ⬜ |
+| Confirmar en equipo: **vamos con rama B** | equipo | ⬜ (30 s) |
 
-### Entrega (viernes 4, 17:00 CEST)
+### Lunes 31 — go-live
 
-| Tarea | Estado |
-|---|---|
-| Rellenar los `[Results: ...]` del write-up con los números del jueves | ⬜ jueves 3 tras el cierre |
-| Grabar y montar el vídeo — guion en [`video-script.md`](video-script.md) | ⬜ Álvaro, clips desde el lunes |
-| Deck / slides + cover image | ⬜ |
-| Capturas post-cierre del jueves (equity, posiciones, activity log) | ⬜ |
-| Repo a público + formulario de lablab | ⬜ viernes 4 |
-| Posts sociales (premio aparte) | ⬜ |
+Seguir `docs/RUNBOOK.md`. 15:00 checklist · 15:30 primera posición en **testing** · ~16:15
+`DESK_MODE=live` para UC3M · vigilar cada run de 15 min · grabar clips · post social #1.
 
-### Opcional / lista de recortes
+### Jueves 3 (tras el cierre, 22:00 CEST) — el cuello de botella
 
-Dashboard mínimo (B6) · reflexión nocturna · ensemble a 1 modelo si el cupón aprieta · skew.
+- Capturas de UC3M (equity, posiciones, activity log) → **fijar el número de P&L**.
+- Re-render del vídeo: `video/src/data.ts` → `RESULTS.mode='live'` + bloque S7 de `NARRATION.md`
+  → `npm run render` → re-grabar solo el audio de S7 → recomponer.
+- Write-up final con los números reales (Ángel).
+
+### Viernes 4 (17:00 CEST) — entregar
+
+Subir vídeo a YouTube no listado → link en [`SUBMISSION.md`](SUBMISSION.md) · repo a público
+(`gh repo edit --visibility public`, ese día) · formulario lablab (repo, vídeo, account ID
+`PA39HSCQE8S3`, hasta 5 links sociales, título/descripción/tags) · post social final.
+
+### Opcional / recortes
+
+Deck / slides (las reglas no lo piden — el write-up + el vídeo cubren Presentation) · MCP ·
+reflexión nocturna · ensemble a 1 modelo si el cupón aprieta.
 
 ---
 
