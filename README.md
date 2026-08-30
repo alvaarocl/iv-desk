@@ -119,7 +119,8 @@ backtest/     replay harness + RESULTS.md, the evidence the calibration is based
 probes/       day-0 API de-risking scripts and the findings that dictated the design
 dashboard/    a single static page, reads data/ live
 video/        the demo video (Remotion project + render)
-docs/         strategy spec, write-up, glossary, runbook, API notes
+docs/         strategy spec, write-up, glossary, runbook, API notes, self-audit
+docs/internal/ working docs — plans, status, presentation notes. Not deliverables.
 data/         journal.jsonl, equity.csv — the audit trail, committed by the bot
 ```
 

@@ -96,7 +96,7 @@ del rubro**, así que la frase necesita matiz: no aspiramos a ganar el eje de P&
 lo gana quien tenga suerte), pero **ceder el upside conservando el downside es la peor combinación
 posible** — que es exactamente donde estamos hoy con el sizing actual.
 
-El razonamiento completo, con los números, está en [`VIABILIDAD.md`](VIABILIDAD.md) → *"La
+El razonamiento completo, con los números, está en [`VIABILIDAD.md`](internal/VIABILIDAD.md) → *"La
 incoherencia de riesgo que hay que resolver"*. Resumen: hay que elegir explícitamente entre **(a)**
 asumir la cesión y reducir también el riesgo, o **(b)** rampa de sizing agresiva si el lunes va
 limpio. Cualquiera de las dos vale; la posición actual — (a) en el upside y (b) en el downside — no.
@@ -156,7 +156,7 @@ contar. Esa decisión se toma más adelante si hace falta.
 
 ## Estado actual y qué falta
 
-Ver [`STATUS.md`](STATUS.md) para el detalle. Resumen: el **motor determinista** (pasos 1–5) está
+Ver [`STATUS.md`](internal/STATUS.md) para el detalle. Resumen: el **motor determinista** (pasos 1–5) está
 construido y probado contra el mercado real. Falta la **capa de IA** (paso 6), el **dashboard**, la
 **calibración** de los números con el mercado abierto, y todo el material de entrega
 (one-pager, vídeo, deck).

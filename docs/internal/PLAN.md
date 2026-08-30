@@ -1,6 +1,6 @@
 # Plan
 
-Revised 29 Aug after Alpaca's official guidelines (see `docs/STATUS.md` → "Official rules").
+Revised 29 Aug after Alpaca's official guidelines (see `docs/internal/STATUS.md` → "Official rules").
 
 > **Estado al 30 ago:** todo lo de Sat 29 y Sun 30 está hecho y en `main` — cuenta de competición
 > creada y verificada ($100k, L3, cero histórico), cupón Featherless redimido, ejecución migrada al
@@ -8,10 +8,10 @@ Revised 29 Aug after Alpaca's official guidelines (see `docs/STATUS.md` → "Off
 > reales, calibración fijada (`vrp_ratio_min 1.05`, `gex_min 0.03`), 116 tests + `ruff` limpio, CI
 > en `dry_run` contra UC3M en verde, dashboard desplegado, vídeo v1 renderizado. Las casillas de
 > abajo se dejan como registro; lo que queda vivo es **go-live el lunes** y **entrega el viernes**.
-> El tracker real es `docs/STATUS.md`.
+> El tracker real es `docs/internal/STATUS.md`.
 
-**Todas las fechas, con hora CEST y ET, en [`docs/CALENDARIO.md`](docs/CALENDARIO.md).** Qué hacer
-durante las sesiones en vivo: [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
+**Todas las fechas, con hora CEST y ET, en [`docs/CALENDARIO.md`](../CALENDARIO.md).** Qué hacer
+durante las sesiones en vivo: [`docs/RUNBOOK.md`](../RUNBOOK.md).
 
 ## Hard dates
 
@@ -33,7 +33,7 @@ robustness of the agent workflow. **UI is explicitly not required.**
 **Judging criteria: four, not five** — P&L Performance · Technology Implementation · Creativity &
 Originality · Presentation & Execution (~25% each). Social Engagement is a **separate prize**.
 Prize pool **$5,000** (1st $2,500 / 2nd $1,500 / 3rd $1,000). See
-[`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md).
+[`docs/REGLAS-HACKATHON.md`](../REGLAS-HACKATHON.md).
 
 ## Consequences
 
@@ -80,7 +80,7 @@ Team of 2. Lanes: **(A) agent · (B) dashboard (optional) · (C) content/write-u
 
 ## Mon 31 Aug → 09:30 ET / 15:30 CEST — GO LIVE (P&L day 1)
 
-- [ ] 09:00 ET (**15:00 CEST**): run the startup checklist in [`docs/RUNBOOK.md`](docs/RUNBOOK.md) —
+- [ ] 09:00 ET (**15:00 CEST**): run the startup checklist in [`docs/RUNBOOK.md`](../RUNBOOK.md) —
       flip workflow `DESK_MODE=live`, competition account, confirm fresh $100k and zero history,
       confirm the secrets are `PA39HSCQE8S3`'s and not the testing account's.
 - [ ] Sizing per the closed decision (#16): **0.5% NAV risk/trade, flat all week**, `max_positions=8`.

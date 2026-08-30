@@ -18,7 +18,7 @@ ya su marca ✅).
 |---|---|---|
 | **P0** | 8 | ✅ **8/8 cerrados.** Ejecución por el CLI de Alpaca (#4), `limit_price` firmado (#1), exit manager en $/lote con replay harness (#2), `client_order_id` + `reconcile` contra Alpaca (#3), estrategia calibrada con 60 sesiones reales (#5/#6/#7), barras diarias paginadas (#26). |
 | **P1** | 9 | ✅ **9/9 cerrados.** 116 tests + `ruff` limpio (#9), CLI pineado `v0.0.14` con verificación de versión (#8), capa LLM construida y **cableada en `desk.py:248`** (#13), gate de liquidez + `_mid()` sin caída silenciosa a 0 (#22), `net_delta` real (#11), umbral de GEX (#10), fade-trend resuelto por decisión (#12), runbook + contingencia de cron saltado (#23/#24). |
-| **P2** | 5 | ✅ 4/5. Código muerto borrado (#14), calendario macro verificado (#17), asignación temprana mitigada y detectada por doble vía (#25). Sizing (#16) resuelto **por decisión humana**: 0.5% plano toda la semana, `max_positions=8` — ver [`VIABILIDAD.md`](VIABILIDAD.md) y `config.py:55-63`. Dependencias sin usar (#15): `anthropic`/`openai` fuera; quedan por barrer las restantes. |
+| **P2** | 5 | ✅ 4/5. Código muerto borrado (#14), calendario macro verificado (#17), asignación temprana mitigada y detectada por doble vía (#25). Sizing (#16) resuelto **por decisión humana**: 0.5% plano toda la semana, `max_positions=8` — ver [`VIABILIDAD.md`](internal/VIABILIDAD.md) y `config.py:55-63`. Dependencias sin usar (#15): `anthropic`/`openai` fuera; quedan por barrer las restantes. |
 
 Deuda de documentación pendiente de barrer antes del viernes: recuento de tests coherente en los
 tres sitios (ahora **116**), `README.md` describe `dashboard/` como "Next.js" (es un `index.html`
@@ -72,7 +72,7 @@ take = credit * (1 - params.take_profit_frac)   # 120 * 0.5 = 60  (dólares)
 if debit <= take:                                # 1.20 <= 60  → SIEMPRE cierto
 ```
 
-Toda posición se marca como take-profit en el primer loop tras abrirse. El `pnl` calculado es fantasía. Coherente con que `STATUS.md` admita que el exit manager nunca se probó sobre una posición real.
+Toda posición se marca como take-profit en el primer loop tras abrirse. El `pnl` calculado es fantasía. Coherente con que `docs/internal/STATUS.md` admita que el exit manager nunca se probó sobre una posición real.
 
 ### 3. ~~Se asume el fill y el estado vive en un `git push || true`~~ ✅ RESUELTO (29 ago)
 `execution.py:151-160`, `.github/workflows/desk.yml:47` · issue #3
@@ -194,7 +194,7 @@ No existe `tests/`, hay **0 funciones `test_`**, y `pyproject.toml` declara `tes
 ### 10. ~~GEX: solo se usa el signo, falta umbral~~ ✅ RESUELTO (29 ago)
 `signal.py:210` · issue #10
 
-`gex_sign = 1 if gex >= 0 else -1`. Un GEX de +$1M y uno de +$50Bn se tratan igual, sobre un dato con retraso T-2. `STATUS.md` lista "umbral de GEX" como parámetro a calibrar pero **no existe en `config.py`** (solo `gex_band`, que es la ventana de strikes).
+`gex_sign = 1 if gex >= 0 else -1`. Un GEX de +$1M y uno de +$50Bn se tratan igual, sobre un dato con retraso T-2. `docs/internal/STATUS.md` lista "umbral de GEX" como parámetro a calibrar pero **no existe en `config.py`** (solo `gex_band`, que es la ventana de strikes).
 
 ### 11. ~~`net_delta` cableado a `0.0`~~ ✅ RESUELTO (29 ago)
 `desk.py:78`, `desk.py:93` · issue #11
@@ -271,7 +271,7 @@ Cero imports de: `alpaca-py`, `pandas`, `scipy`, `openai`, `pydantic`, `rich`, `
 ### 16. ~~El sizing no puede puntuar, pero sí puede perder~~ ✅ DECIDIDO (30 ago) — decisión humana, no bug
 `config.py:32` · issue #16
 
-0.5% de $100k = $500/trade → **1 contrato** → ~$120 de crédito. Con 3 posiciones en 4 sesiones el mejor escenario posible es ~0.3% de retorno. Pero el max loss del condor son $280 y una rotura se come dos ganadores. **Cedemos el upside y conservamos el downside.** Ver [`VIABILIDAD.md`](VIABILIDAD.md).
+0.5% de $100k = $500/trade → **1 contrato** → ~$120 de crédito. Con 3 posiciones en 4 sesiones el mejor escenario posible es ~0.3% de retorno. Pero el max loss del condor son $280 y una rotura se come dos ganadores. **Cedemos el upside y conservamos el downside.** Ver [`VIABILIDAD.md`](internal/VIABILIDAD.md).
 
 > Resuelto por decisión de equipo (opción c de `VIABILIDAD.md`): **frecuencia > tamaño**.
 > `risk_per_trade` 0.5% **plano toda la semana** (sin rampa lunes→martes), `max_positions` 6 → 8.
