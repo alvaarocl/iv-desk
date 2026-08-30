@@ -11,6 +11,7 @@ It does not trade price. It trades the **volatility risk premium**, gated by **d
 | Doc | For |
 |---|---|
 | [`docs/CONCEPT.md`](docs/CONCEPT.md) | **Plain-language** explanation — what it does, why it wins, alternatives we considered. Start here if you're not a trader. |
+| [`docs/DOSSIER.md`](docs/DOSSIER.md) | **Defense dossier** — the full build explained twice (for anyone / technically), plus how to answer the hard questions. Read before presenting. |
 | [`docs/GLOSSARY.md`](docs/GLOSSARY.md) | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…). |
 | [`docs/STATUS.md`](docs/STATUS.md) | What works now, what's left, decisions locked vs open. |
 | [`docs/AUDITORIA.md`](docs/AUDITORIA.md) | **Technical audit (29 Aug, status 30 Aug)** — every known defect with file:line. All 8 P0 and 9 P1 closed; see the "Estado al 30 ago" block. |

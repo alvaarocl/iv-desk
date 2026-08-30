@@ -35,6 +35,7 @@ Everything runs on Alpaca's **paper** environment. No real money.
 | Path | What it is |
 |---|---|
 | `docs/CONCEPT.md` | **Start here.** Plain-language: what it does, why it wins, alternatives we considered |
+| `docs/DOSSIER.md` | The full build explained twice (layperson + technical) + how to field the hard questions. Read before presenting |
 | `docs/GLOSSARY.md` | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…) |
 | `docs/STATUS.md` | Current build state — what works, what's left, decisions locked vs open |
 | `docs/AUDITORIA.md` | **Technical audit** — every known defect with file:line, by severity. Update it in the same PR that fixes the code |
