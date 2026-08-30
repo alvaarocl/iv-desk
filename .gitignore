@@ -13,3 +13,8 @@ backtest/cache/
 video/node_modules/
 video/out/*
 !video/out/iv-desk-presentation.mp4
+
+# iCloud sincroniza ~/Desktop y crea copias de conflicto ("fichero 2.py") con contenido
+# ANTIGUO. Si una entra en un `git add -A` se mergea código obsoleto a main sin que nadie lo vea.
+*[0-9].py
+*[0-9].md
