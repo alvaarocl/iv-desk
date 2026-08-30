@@ -1,5 +1,6 @@
 node_modules/
 out/*
 !out/iv-desk-presentation.mp4
+!out/IVDESK-UC3M.mp4
 .remotion/
 *.log

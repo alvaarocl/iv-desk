@@ -13,7 +13,7 @@ Plataforma: lablab.ai. Reglas verificadas en [`REGLAS-HACKATHON.md`](REGLAS-HACK
 | 2 | Licencia MIT presente | ✅ | `LICENSE` en la raíz |
 | 3 | **Disclosure de trabajo pre-evento** en el README | ✅ | Sección "Pre-event work disclosure". Verificar que sigue siendo exacta el día 4 |
 | 4 | **ID de la cuenta de competición** | ✅ dato | `PA39HSCQE8S3` ("PAPER UC3M"). Va en el formulario de submission |
-| 5 | **Vídeo demo** (~2:52) | 🔶 | Proyecto Remotion en `video/`. v1 renderizada con datos del backtest. **Jueves:** editar `video/src/data.ts` (`RESULTS.mode = "live"`) + guion S6, `npm run render`, subir a YouTube no listado. Narración TTS: `video/NARRATION.md` |
+| 5 | **Vídeo demo** (~3:12) | ✅ v1 lista | Vídeo final con narración: `video/out/IVDESK-UC3M.mp4` (visuales Remotion + voz ElevenLabs). Master mudo: `video/out/iv-desk-presentation.mp4`. **Jueves:** editar `video/src/data.ts` (`RESULTS.mode="live"`) + bloque S7 de `NARRATION.md`, `npm run render`, re-grabar solo el audio de S7, recomponer, subir a YouTube no listado |
 | 6 | **One-page write-up** | 🔶 | `docs/write-up.md` — reescribir desde el código el día 6 (issue #18). Números reales de la ventana |
 | 7 | **Deck / slides** | ⬜ | Miércoles 2. Cover image incluida |
 | 8 | **Descripción + tags + título** para lablab | ⬜ | Viernes 4 |
