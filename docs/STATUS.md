@@ -1,6 +1,37 @@
 # Estado del proyecto
 
-Última actualización: **30 ago 2026** (domingo tarde). Este archivo se actualiza a mano.
+Última actualización: **31 ago 2026, 23:10 CEST** (tras la sesión 1). Este archivo se actualiza a mano.
+
+---
+
+## ⚠️ Post-mortem de la sesión 1 (lun 31 ago) — CERO operaciones
+
+La primera de las 4 sesiones puntuables se fue entera con equity plana en **$100.000,00**. La señal
+no falló: SPY pasó todos los gates deterministas (`iron_condor` 760/762–770/772). Falló todo lo de
+alrededor, en cuatro sitios independientes:
+
+| # | Causa | Estado |
+|---|---|---|
+| 1 | `DESK_MODE` seguía en `dry_run` — nunca se flipó | ⏳ se flipa el martes tras verificar en horario de mercado |
+| 2 | `FEATHERLESS_API_KEY` de GitHub inválida → 401 en las 3 seats → veto total | ✅ rotada y **verificada en CI: 3/3 seats** (`probes/04_featherless_seats.py`) |
+| 3 | El cron de GitHub disparó **1 run de ~27** | ✅ repo público + `ops/pacemaker.sh` como fuente de ticks primaria |
+| 4 | El corte de expiración ≤ 3 sep **no existía en el código** | ✅ implementado (#24), 6 tests |
+
+El #4 no lo había visto nadie: el jueves 3 —última sesión, snapshot a su cierre— `pick_expiration`
+habría devuelto **4 sep** para todo, fuera de la ventana de medición. La sesión 3 de 3 se habría
+desperdiciado entera.
+
+**Cambios de la noche del 31** (todos con el mercado cerrado, PRs #47/#48/#49):
+- `risk_per_trade` **0.005 → 0.02** (~12 contratos). Revierte la decisión "frecuencia > tamaño"
+  del #16: esa tesis necesitaba trades, y con 0,6 trades de esperanza en lo que queda la frecuencia
+  ya no es una palanca. **Los gates de entrada no se tocan.**
+- `pf.net_delta` ahora se acumula entre subyacentes del mismo run (#25).
+- El input `mode` del workflow pasa a `inherit`: un dispatch sin argumentos **hereda**
+  `vars.DESK_MODE` en vez de forzar `dry_run` en silencio. Era la mina que habría repetido el lunes.
+
+**Ojo para el martes:** con ~12 contratos, `max_net_delta` 0.30 pasa a ser el gate que manda por
+delante de `max_positions`. Respuesta pre-acordada si aparecen rechazos `portfolio delta band`:
+`max_net_delta` → 0.60 vía `data/params.json`. Detalle en [`RUNBOOK.md`](RUNBOOK.md).
 Plan del fin de semana en [`PLAN-FINDE.md`](PLAN-FINDE.md).
 
 ---
