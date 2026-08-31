@@ -16,6 +16,7 @@ rather than just being silent:
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -23,6 +24,14 @@ import numpy as np
 
 from . import broker
 from . import marketdata as md
+
+# The P&L window is measured on total equity at the close of Thu 3 Sep, and Alpaca confirmed in
+# Discord that Fri-4-Sep expirations are excluded from the measurement. A position expiring after
+# the snapshot is therefore strictly bad: it cannot realize inside the window, and it still marks
+# to market against the scored equity as premium we sold and have not yet earned. So the desk may
+# never open past this date — the rule was a locked decision in CLAUDE.md/STATUS.md that had no
+# code behind it until now. Overridable so the tests (and any future window) do not need an edit.
+LAST_EXPIRATION = date.fromisoformat(os.environ.get("DESK_LAST_EXPIRATION", "2026-09-03"))
 
 
 @dataclass
@@ -269,7 +278,25 @@ def _rma(x: np.ndarray, n: int) -> np.ndarray:
 
 # ---------- data fetch ----------
 
-def pick_expiration(underlying: str, spot: float, min_dte: int = 1, max_dte: int = 3) -> str:
+def pick_expiration(
+    underlying: str,
+    spot: float,
+    min_dte: int = 1,
+    max_dte: int = 3,
+    last_expiration: date | None = None,
+) -> str | None:
+    """Nearest expiration in [min_dte, max_dte] that still lands on or before the scoring cutoff.
+
+    Returns None rather than a fallback when nothing qualifies. The old code fell back to
+    `exps[0]` (the nearest expiration, whatever it was), which on Thu 3 Sep would have handed
+    back Fri 4 Sep — every trade of the final session opened outside the measured window. A
+    stand-down is the only safe answer: an expiration we cannot score is worse than no trade.
+
+    On the cutoff day itself the 1-3 DTE band is empty by construction, so same-day expiry is
+    accepted as a second pass. That is deliberate 0DTE, and it stays governed by the existing
+    `no_new_0dte_after_et` gate in risk.evaluate().
+    """
+    cutoff = LAST_EXPIRATION if last_expiration is None else last_expiration
     today = date.today()
     cons = broker.option_contracts(
         underlying,
@@ -278,20 +305,27 @@ def pick_expiration(underlying: str, spot: float, min_dte: int = 1, max_dte: int
         strike_gte=spot * 0.99,
         strike_lte=spot * 1.01,
     )
-    exps = sorted({c["expiration_date"] for c in cons})
-    fallback = exps[0] if exps else today.isoformat()
-    for e in exps:
-        dte = (date.fromisoformat(e) - today).days
-        if min_dte <= dte <= max_dte:
-            return e
-        if dte == 0 and not fallback:
-            fallback = e
-    return fallback
+    dated = sorted(
+        (date.fromisoformat(e) for e in {c["expiration_date"] for c in cons}) if cons else []
+    )
+    eligible = [e for e in dated if e <= cutoff]
+    for e in eligible:
+        if min_dte <= (e - today).days <= max_dte:
+            return e.isoformat()
+    # Cutoff day: nothing left in the preferred band, so take same-day expiry if it exists.
+    for e in eligible:
+        if (e - today).days == 0:
+            return e.isoformat()
+    return None
 
 
 def fetch(underlying: str, params) -> dict:
     spot = md.stock_price(underlying)
     exp = pick_expiration(underlying, spot)
+    if exp is None:
+        # Past the scoring cutoff: skip the chain and open-interest calls entirely. build_signal
+        # turns this into an explicit `expiration` stand-down rather than a silent "data" one.
+        return {"spot": spot, "expiration": None, "chain": {}, "oi": {}, "bars": []}
     lo, hi = spot * (1 - params.gex_band - 0.02), spot * (1 + params.gex_band + 0.02)
     chain = md.option_chain_snapshot(underlying, expiration_date=exp, strike_gte=lo, strike_lte=hi)
     cons = broker.option_contracts(underlying, expiration_date=exp, strike_gte=lo, strike_lte=hi)
@@ -317,9 +351,11 @@ def build_signal(underlying: str, data: dict, params) -> Signal:
     skew = (put_iv - call_iv) if (put_iv and call_iv) else 0.0
     regime, bias = classify_regime(bars, state, params.fade_trend)
 
-    # --- the three stand-down gates, in order of how cheap they are to evaluate ---
+    # --- the stand-down gates, in order of how cheap they are to evaluate ---
     structure, sell, stand_down = "none", False, ""
-    if not have_vol:
+    if not data.get("expiration"):
+        stand_down = "expiration"                # nothing left on or before the scoring cutoff
+    elif not have_vol:
         stand_down = "data"                      # no usable IV or not enough bar history
     elif ratio < params.vrp_ratio_min:
         stand_down = "vrp"                       # options are not rich *relative to* realized
@@ -346,7 +382,7 @@ def build_signal(underlying: str, data: dict, params) -> Signal:
 
     return Signal(
         underlying=underlying, spot=spot, sell_premium=sell, structure=structure, bias=bias,
-        regime=regime, expiration=data["expiration"],
+        regime=regime, expiration=data["expiration"] or "",
         vrp=round(vrp, 4), vrp_ratio=round(ratio, 3),
         atm_iv=round(iv, 4), rv_hat=round(rv, 4),
         gex=gex, gex_sign=(1 if gex >= 0 else -1), gex_norm=round(gex_norm, 4), gex_state=state,

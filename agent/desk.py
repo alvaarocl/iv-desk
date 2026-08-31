@@ -259,6 +259,12 @@ def _consider(u: str, params: Params, pf, mult: float, mode: str,
     t = ex.open_trade(s, sel, n, thesis, mode)
     pf.n_positions += 1
     pf.open_risk += proposed.max_loss
+    # `net_delta` was the one book field this loop forgot to carry forward, so every underlying
+    # after the first was gated against the *pre-run* delta. Harmless while a trade moved ~0.01
+    # of the 0.30 band; at the 31-Aug sizing a single condor can move 0.10-0.20, and three
+    # same-run opens could each pass at 0.28 and leave the book at 0.84. The gate exists to stop
+    # a defined-risk premium book from turning into a directional bet — it has to see itself.
+    pf.net_delta += proposed.net_delta
     append({"ts": stamp, "event": "opened", "mode": mode, "trade": t.id if t else None,
             "status": t.status if t else None, "underlying": u, "structure": s.structure,
             "contracts": n, "credit": round(sel["credit"], 2),

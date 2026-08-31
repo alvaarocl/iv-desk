@@ -268,7 +268,7 @@ issue #24 · **`docs/RUNBOOK.md` creado**
 
 Cero imports de: `alpaca-py`, `pandas`, `scipy`, `openai`, `pydantic`, `rich`, `anthropic`. Solo se usan `numpy`, `httpx` y `python-dotenv`. Declarar el **SDK oficial de Alpaca y no usarlo**, en un hackathon de Alpaca, es justo el detalle que un juez mira.
 
-### 16. ~~El sizing no puede puntuar, pero sí puede perder~~ ✅ DECIDIDO (30 ago) — decisión humana, no bug
+### 16. El sizing no puede puntuar, pero sí puede perder — 🔄 REABIERTO Y REVERTIDO (31 ago)
 `config.py:32` · issue #16
 
 0.5% de $100k = $500/trade → **1 contrato** → ~$120 de crédito. Con 3 posiciones en 4 sesiones el mejor escenario posible es ~0.3% de retorno. Pero el max loss del condor son $280 y una rotura se come dos ganadores. **Cedemos el upside y conservamos el downside.** Ver [`VIABILIDAD.md`](VIABILIDAD.md).
@@ -279,12 +279,57 @@ Cero imports de: `alpaca-py`, `pandas`, `scipy`, `openai`, `pydantic`, `rich`, `
 > textura, con el downside topado por `max_portfolio_risk` 0.10. No se persigue el eje de P&L
 > (4 sesiones son una lotería de varianza); ver `config.py:55-63` y `backtest/RESULTS.md`.
 
+> **Revertido el 31 ago tras la sesión 1.** La tesis "frecuencia > tamaño" dependía de que hubiera
+> trades. El lunes dio **cero** — y no por la señal (SPY pasó todos los gates deterministas) sino
+> porque `DESK_MODE` seguía en `dry_run`, el secret de Featherless daba 401 y el cron disparó 1 run
+> de ~27. Con la tasa de disparo del 6,3% del backtest sobre las 9 sesiones-subyacente que quedan,
+> la esperanza es ~0,6 trades: la frecuencia ya no está disponible como palanca.
+> `risk_per_trade` **0.005 → 0.02** (~12 contratos, max_loss $1.872/trade). Los gates de entrada
+> **no** se tocan: aflojar `vrp_ratio_min` o `gex_min` es como se revientan los libros de vol corta,
+> y una cuenta en pérdidas puntúa peor que un +0,03%.
+>
+> Efecto secundario conocido: `max_net_delta` 0.30 pasa a ser el gate que manda por delante de
+> `max_positions`, porque el presupuesto de delta es absoluto y no escala con el tamaño. Si
+> aparecen rechazos `portfolio delta band`, la respuesta pre-acordada es `max_net_delta → 0.60`
+> (decidida en frío, no en sesión).
+
 ### 17. ~~Riesgo de asignación temprana en patas cortas ITM~~ ✅ MITIGADO (29 ago)
 `execution.py:180-182` · issue #25
 
 Las opciones sobre SPY/QQQ/IWM son de **estilo americano**: una pata corta ITM puede asignarse en cualquier momento. `strategy-spec.md` promete cerrar toda pata corta ITM a las 15:45 ET, pero el código solo cierra la estructura completa **el día de expiración**. Si nos asignan, aparecen ~$77.000 de nocional en acciones y el agente no lo contempla en absoluto.
 
 Riesgo bajo en esta ventana (el ex-dividendo de SPY cae fuera), pero hay que decidir explícitamente si se mitiga o se acepta.
+
+### 24. El corte de expiración ≤ 3 sep estaba documentado pero no implementado 🔴 P0 ✅ RESUELTO (31 ago)
+`signal.py:272-289`
+
+`CLAUDE.md` y `STATUS.md` daban por cerrada la regla "las operaciones de competición usan
+expiración ≤ 3 sep". **No existía en el código.** `pick_expiration` elegía la primera expiración
+con `1 <= dte <= 3` y, si no encontraba ninguna, caía a `exps[0]`. Simulado por sesión:
+
+```
+  sesion 2026-09-01 -> 2026-09-02 (dte 1)   OK
+  sesion 2026-09-02 -> 2026-09-03 (dte 1)   OK
+  sesion 2026-09-03 -> 2026-09-04 (dte 1)   >>> FUERA DE LA VENTANA <<<
+```
+
+El jueves 3 es la última sesión puntuable y el snapshot es a su cierre: cada trade abierto ese día
+habría expirado el viernes, excluido de la medición, y además restando en el snapshot como prima
+vendida sin decaer. La sesión 3 de 3 se habría desperdiciado entera.
+
+Arreglado con un tope duro (`LAST_EXPIRATION`, override por `DESK_LAST_EXPIRATION`): se descartan
+las expiraciones posteriores al corte, el jueves se acepta el mismo día (0DTE, ya gobernado por
+`no_new_0dte_after_et`), y si no queda ninguna válida se devuelve `None` → `stand_down:
+"expiration"` en vez de una expiración fuera de ventana. 6 tests nuevos en `test_signal.py`.
+
+### 25. `pf.net_delta` no se acumulaba entre subyacentes del mismo run ✅ RESUELTO (31 ago)
+`desk.py:260-262`
+
+`_consider` incrementaba `pf.n_positions` y `pf.open_risk` tras abrir, pero **no** `pf.net_delta`.
+Cada subyacente posterior al primero se evaluaba contra la delta del libro *previa al run*. Con
+`risk_per_trade` 0.005 el error era ruido (~0,01 de una banda de 0,30); al pasar a 0.02 un solo
+condor mueve 0,10–0,20 y tres aperturas en el mismo run podían pasar a 0,28 cada una y dejar el
+libro en 0,84. Una línea: `pf.net_delta += proposed.net_delta`.
 
 ### 18. Fechas del calendario macro sin verificar
 `calendar.py:16-22` · issue #17

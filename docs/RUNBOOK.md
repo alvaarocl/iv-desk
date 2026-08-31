@@ -67,11 +67,33 @@ Mirar el **último bloque del journal** (`data/journal.jsonl`) y el último run 
 | `n_pos` | ≤ `max_positions` y coincide con Alpaca | no coincide con el dashboard → **posición fantasma** (reconcile debería resolverlo) |
 | `net_delta` | cerca de 0 | \|net_delta\| > 0.30 → el gate de delta debería bloquear nuevas |
 | `size_mult` | `1.0` | `0.5` = throttle por drawdown 8% · `0.0` = halt 12% |
-| `rejected` | motivos esperados: `macro event blackout`, `credit_frac`, `per-trade risk` | motivos raros: `missing greeks` repetido, `portfolio delta band` repetido, o **cero eventos `signal`** |
+| `rejected` | motivos esperados: `macro event blackout`, `credit_frac`, `per-trade risk`, **`portfolio delta band`** (ver abajo) | motivos raros: `missing greeks` repetido, o **cero eventos `signal`** |
+| `stand_down` | `vrp` / `gex` / `trend` según la cinta | **`expiration`** → ya no queda expiración ≤ 3 sep; el jueves después de las 14:00 ET es lo esperado |
+| `contracts` en `opened` | ~12 en SPY/QQQ | 1–3 → la mesa está recortando el tamaño, ver abajo |
 | `exits_only` | — | `early_assignment` → asignación temprana, ver abajo · `kill_switch` → alguien puso `DESK_MODE=exits_only` |
 
 `market_closed` fuera de horario es normal. Un `rejected` documentado **no es un fallo**: es el
 producto que estamos vendiendo ([`VIABILIDAD.md`](VIABILIDAD.md)). Un journal **vacío** sí lo es.
+
+### Tres cosas nuevas del 31 ago que hay que saber leer
+
+**1. `portfolio delta band` es esperado, no un bug.** Con `risk_per_trade` a 0.02 (~12 contratos)
+el presupuesto de delta **no escala con el tamaño**: `max_net_delta` 0.30 es absoluto, así que un
+condor con delta residual de 0,02/acción se come 0,199 él solo y el segundo del día sale rechazado.
+`max_net_delta` sustituye a `max_positions` como gate que manda. **Respuesta pre-acordada si se
+repite** (decidida en frío para no improvisar en sesión): `max_net_delta` → 0.60 vía
+`data/params.json`, *no* bajar los gates de entrada.
+
+**2. La mesa puede anular la subida de tamaño.** El Desk Head solo puede recortar `n`, nunca
+ampliarlo, y no hay suelo. Si el transcript dice `desk head trimmed 12 -> 2` de forma consistente,
+el cambio de sizing no está teniendo efecto y la única palanca es `DESK_DEBATE=off` — que pasa la
+decisión determinista **a tamaño completo y sin recorte**. Es el botón de "necesitamos trades en el
+marcador", con el coste de perder el transcript de la mesa.
+
+**3. `DESK_MODE` vuelve a mandar desde la variable de repo.** El input `mode` del
+`workflow_dispatch` ahora es `inherit` por defecto: un dispatch sin argumentos **hereda la
+variable** en vez de forzar `dry_run` en silencio (era la mina que habría repetido el lunes).
+Para forzar un modo puntual, `-f mode=live|exits_only|dry_run` sigue funcionando y gana.
 
 ---
 

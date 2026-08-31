@@ -316,3 +316,79 @@ def test_sell_premium_implies_a_tradeable_structure():
             s = sg.build_signal("SPY", make_data(bars, chain, oi), params())
             assert s.sell_premium == (s.structure != "none")
             assert s.sell_premium == (s.stand_down == "")
+
+
+# ---------- the scoring-window expiration cutoff ----------
+#
+# The P&L window snapshots total equity at the close of Thu 3 Sep and Fri-4-Sep expirations are
+# excluded. `pick_expiration` used to fall back to the nearest expiration whatever it was, so on
+# Thu 3 Sep it returned Fri 4 Sep and every trade of the final session landed outside the
+# measurement. These pin the fix.
+
+CUTOFF = date(2026, 9, 3)
+
+
+class _FrozenDate(date):
+    """Lets a test pin `date.today()` inside agent.signal without touching the real clock."""
+
+    _today = date(2026, 9, 1)
+
+    @classmethod
+    def today(cls) -> date:
+        return cls._today
+
+
+@pytest.fixture
+def at_date(monkeypatch):
+    def _set(d: date):
+        monkeypatch.setattr(_FrozenDate, "_today", d)
+        monkeypatch.setattr(sg, "date", _FrozenDate)
+
+        def fake_contracts(underlying, **kw):
+            # SPY has daily expirations; hand back the next two weeks of weekdays.
+            out = []
+            for i in range(14):
+                e = date.fromordinal(d.toordinal() + i)
+                if e.weekday() < 5:
+                    out.append({"expiration_date": e.isoformat()})
+            return out
+
+        monkeypatch.setattr(sg.broker, "option_contracts", fake_contracts)
+
+    return _set
+
+
+@pytest.mark.parametrize("today, expected", [
+    (date(2026, 9, 1), "2026-09-02"),   # Tue  -> Wed, 1 DTE
+    (date(2026, 9, 2), "2026-09-03"),   # Wed  -> Thu, 1 DTE
+    (date(2026, 9, 3), "2026-09-03"),   # Thu  -> same day. NOT Fri 4 Sep.
+])
+def test_expiration_never_crosses_the_scoring_cutoff(at_date, today, expected):
+    at_date(today)
+    assert sg.pick_expiration("SPY", 766.0, last_expiration=CUTOFF) == expected
+
+
+def test_the_old_fallback_no_longer_leaks_a_post_cutoff_expiration(at_date):
+    """Fri 4 Sep: nothing on or before the cutoff is left, so the desk must stand down."""
+    at_date(date(2026, 9, 4))
+    assert sg.pick_expiration("SPY", 766.0, last_expiration=CUTOFF) is None
+
+
+def test_no_contracts_at_all_is_a_stand_down_not_a_guess(at_date, monkeypatch):
+    at_date(date(2026, 9, 1))
+    monkeypatch.setattr(sg.broker, "option_contracts", lambda underlying, **kw: [])
+    assert sg.pick_expiration("SPY", 766.0, last_expiration=CUTOFF) is None
+
+
+def test_missing_expiration_stands_the_signal_down_before_any_other_gate():
+    """A rich, perfectly tradeable surface must still not trade past the cutoff."""
+    bars = range_bars()
+    rv = sg.rv_forecast(bars)
+    chain, oi = make_chain(iv=rv * 2.0, call_gamma=0.06, put_gamma=0.02)
+    data = make_data(bars, chain, oi)
+    data["expiration"] = None
+
+    s = sg.build_signal("SPY", data, params())
+    assert s.stand_down == "expiration"
+    assert s.sell_premium is False and s.structure == "none"
+    assert s.expiration == ""
