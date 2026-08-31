@@ -52,13 +52,17 @@ class Params:
     min_credit_frac: float = 0.20    # credit / width floor (see above: real max was 0.28)
     take_profit_frac: float = 0.50   # close at 50% of max credit
     stop_multiple: float = 2.0       # close at 2x credit received
-    # --- sizing: frequency over size (decision on #16, option c) --------------------------
-    # 4 sessions is a variance lottery; we do not try to win the P&L axis. But a flat
-    # $100k with zero trades scores 0 on P&L *and* leaves the other three axes (75%) with
-    # nothing to show. So: keep the per-trade risk small and FLAT (no Mon->Tue ramp), and
-    # be less selective — more small defined-risk trades => more debate transcripts, a
-    # textured equity curve, downside still capped by max_portfolio_risk.
-    risk_per_trade: float = 0.005    # fraction of NAV, held flat all week
+    # --- sizing: size over frequency (REVERSES #16 option c, 31 Aug) -----------------------
+    # The original call was "frequency > size": many small defined-risk trades for a textured
+    # equity curve and a pile of debate transcripts. That thesis needed trades to exist. Session
+    # 1 of 4 produced ZERO (the infrastructure failed, not the signal), and with the backtest's
+    # 6.3% fire rate over the 9 underlying-sessions that remain the expectation is ~0.6 trades.
+    # Frequency is no longer on the table, so the only lever left is size. At 0.005 the best
+    # realistic week was ~+0.03% of NAV, which scores the same as not trading at all.
+    # Downside is still capped by max_portfolio_risk (0.10) and the structures stay defined-risk.
+    # NOTE: this makes max_net_delta (below) the binding gate, not max_positions — see
+    # docs/RUNBOOK.md. Fallback if `portfolio delta band` rejections appear: max_net_delta -> 0.60.
+    risk_per_trade: float = 0.02     # fraction of NAV, held flat all week (was 0.005)
     max_portfolio_risk: float = 0.10 # hard ceiling on Sum(max_loss) of open positions
     max_positions: int = 8           # was 6; let good days accumulate small positions
     max_net_delta: float = 0.30      # normalized to NAV/100k

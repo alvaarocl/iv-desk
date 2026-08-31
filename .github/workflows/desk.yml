@@ -8,11 +8,17 @@ on:
     - cron: "*/15 13-20 * * 1-5"
   workflow_dispatch:
     inputs:
+      # `inherit` (the default) falls through to the DESK_MODE repo variable. A `type: choice`
+      # input ALWAYS carries its default on a dispatch, so the previous `default: dry_run` made
+      # `github.event.inputs.mode` permanently truthy and `vars.DESK_MODE` unreachable from any
+      # manual or scripted dispatch — a dispatched session would silently run dry_run while the
+      # repo variable said live, and `gh variable set DESK_MODE exits_only` (the documented kill
+      # switch) would not reach it either. The variable has to stay the single source of truth.
       mode:
-        description: "dry_run | live | exits_only"
-        default: "dry_run"
+        description: "inherit = use the DESK_MODE repo variable"
+        default: "inherit"
         type: choice
-        options: [dry_run, live, exits_only]
+        options: [inherit, dry_run, live, exits_only]
 
 concurrency:
   group: desk-loop
@@ -47,8 +53,11 @@ jobs:
       # if Featherless is down mid-session. Set via repo variable, no YAML edit needed.
       DESK_DEBATE: ${{ vars.DESK_DEBATE || 'required' }}
       DESK_DEBATE_BUDGET_S: ${{ vars.DESK_DEBATE_BUDGET_S || '90' }}
-      # workflow_dispatch input wins; otherwise repo var; otherwise the safe default.
-      DESK_MODE: ${{ github.event.inputs.mode || vars.DESK_MODE || 'dry_run' }}
+      # An explicit dispatch input wins; `inherit` and `schedule` both fall through to the repo
+      # variable; anything unrecognised is mapped to dry_run by config.desk_mode() anyway.
+      DESK_MODE: >-
+        ${{ (github.event.inputs.mode != 'inherit' && github.event.inputs.mode)
+            || vars.DESK_MODE || 'dry_run' }}
       ALPACA_CLI_BIN: alpaca
     steps:
       - uses: actions/checkout@v4
