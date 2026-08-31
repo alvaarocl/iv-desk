@@ -1,0 +1,25 @@
+name: Featherless probe
+
+# Deliberately separate from `desk.yml`: the desk loop short-circuits at `market_closed`, so it
+# cannot verify the LLM layer outside market hours. This can, which makes it the pre-flight check
+# the night before a session. Read-only — it places no orders and commits nothing.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      FEATHERLESS_API_KEY: ${{ secrets.FEATHERLESS_API_KEY }}
+      FEATHERLESS_MODELS: ${{ vars.FEATHERLESS_MODELS }}
+      FEATHERLESS_BASE_URL: ${{ vars.FEATHERLESS_BASE_URL || 'https://api.featherless.ai/v1' }}
+      FEATHERLESS_ARGUER_MODEL: ${{ vars.FEATHERLESS_ARGUER_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run python probes/04_featherless_seats.py
