@@ -5,6 +5,8 @@
   2. exits              — manage_exits() on the open book (deterministic, no LLM)
   3. portfolio gates    — daily breaker / drawdown / event blackout / assignment → exits-only
   4. signal per name    — build_signal() (deterministic)
+     4b. shadow debate  — if GEX vetoed a VRP-rich signal, exercise the LLM desk anyway in
+                          observation-only mode (see `_maybe_shadow_debate`). Never opens.
   5. open decision      — pick structure, size via Risk Officer, LLM desk debates (trim/veto
                           only), commit. dry_run logs without ordering.
   6. journal + equity   — append everything to data/
@@ -15,8 +17,10 @@ Every per-underlying step is isolated: one bad quote or HTTP timeout must not ki
 
 from __future__ import annotations
 
+import json
 import os
 import traceback
+from dataclasses import replace
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -25,7 +29,7 @@ from . import execution as ex
 from . import marketdata as md
 from . import signal as sg
 from .config import UNIVERSE, Params, desk_mode
-from .journal import append, record_equity
+from .journal import JOURNAL, append, record_equity
 
 ET = ZoneInfo("America/New_York")
 
@@ -216,6 +220,12 @@ def _consider(u: str, params: Params, pf, mult: float, mode: str,
     rec = {k: v for k, v in s.__dict__.items() if k != "chain"}
     append({"ts": stamp, "event": "signal", **rec})
 
+    try:
+        _maybe_shadow_debate(u, s, data, params, pf, mult, stamp)
+    except Exception as exc:  # noqa: BLE001 - observational only, must never take the tick down
+        append({"ts": stamp, "event": "error", "stage": "shadow_debate", "underlying": u,
+                "error": str(exc)})
+
     if not s.sell_premium or pf.n_positions >= params.max_positions:
         return
     sel = _pick(s, params, data.get("oi"))
@@ -269,6 +279,61 @@ def _consider(u: str, params: Params, pf, mult: float, mode: str,
             "status": t.status if t else None, "underlying": u, "structure": s.structure,
             "contracts": n, "credit": round(sel["credit"], 2),
             "max_loss": round(proposed.max_loss, 0), "strikes": sel["strikes"], "thesis": thesis})
+
+
+# ---------- shadow debate: exercise the LLM desk on a GEX-vetoed candidate, never open it ------
+
+def _shadow_enabled() -> bool:
+    """Independent of DESK_DEBATE — lets the shadow calls be cut without silencing a real debate."""
+    return os.environ.get("DESK_SHADOW_DEBATE", "on").strip().lower() not in {"off", "0", "false"}
+
+
+def _shadow_seen_today(u: str, day: str) -> bool:
+    """Has a shadow debate for `u` already been journaled today? The journal is already the
+    source of truth for everything else this loop does — no reason to keep a second state file
+    just to dedupe this."""
+    if not JOURNAL.exists():
+        return False
+    for line in JOURNAL.read_text(encoding="utf-8").splitlines():
+        if '"shadow": true' not in line or '"event": "debate"' not in line:
+            continue  # cheap substring pre-filter before paying for json.loads on every line
+        try:
+            d = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if d.get("underlying") == u and str(d.get("ts", "")).startswith(day):
+            return True
+    return False
+
+
+def _maybe_shadow_debate(u: str, s: sg.Signal, data: dict, params: Params, pf, mult: float,
+                         stamp: str) -> None:
+    """Observational only. When VRP is rich but GEX vetoes the trade, run the LLM desk anyway on
+    the honest counterfactual — same structure the gate ladder would have picked
+    (`sg._fallback_structure`) — so the journal has a real transcript against real market data on
+    a day the risk gates never let a genuine opening through.
+
+    Safe by construction, not by convention: this function never receives a reference to
+    `ex.open_trade`, never mutates `pf`, and never even reads `DebateOutcome.approved` — there is
+    no code path here that could reach `broker.submit_mleg`. At most one shadow debate per
+    underlying per day (via `_shadow_seen_today`), regardless of how many ticks the pacemaker or
+    cron fire — a stand-down the market repeats all session is one story, not twenty-six.
+    """
+    if not _shadow_enabled() or s.stand_down != "gex":
+        return
+    if _shadow_seen_today(u, stamp[:10]):
+        return
+    hypo = replace(s, structure=sg._fallback_structure(s.regime, s.bias))
+    sel = _pick(hypo, params, data.get("oi"))
+    if not sel:
+        return
+    n = ex.size(sel["width"], sel["credit"], pf.nav, params.risk_per_trade, mult)
+    if n < 1:
+        return
+    thesis = (f"[SHADOW] {u} would stay inside {sel['strikes']} through {hypo.expiration} if "
+              f"dealer gamma cleared: {s.notes}")
+    d = debate.review_open(hypo, sel, n, thesis, shadow=True)
+    append({"ts": stamp, "event": "debate", "underlying": u, **d.to_record()})
 
 
 def _pick(s: sg.Signal, params: Params, oi: dict | None = None) -> dict | None:

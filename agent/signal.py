@@ -336,6 +336,18 @@ def fetch(underlying: str, params) -> dict:
 
 # ---------- main ----------
 
+def _fallback_structure(regime: str, bias: str) -> str:
+    """The structure a signal would trade once it clears every gate, given regime/bias.
+
+    Factored out so `build_signal`'s real gate ladder and the shadow-debate counterfactual in
+    `desk.py` (a candidate that GEX vetoed but would otherwise have cleared) always pick the same
+    structure — one source of truth instead of two copies that can drift apart.
+    """
+    if regime == "range" or bias not in ("bullish", "bearish"):
+        return "iron_condor"
+    return "put_credit_spread" if bias == "bullish" else "call_credit_spread"
+
+
 def build_signal(underlying: str, data: dict, params) -> Signal:
     spot, chain, oi, bars = data["spot"], data["chain"], data["oi"], data["bars"]
     iv = atm_iv(chain, spot)
@@ -363,14 +375,8 @@ def build_signal(underlying: str, data: dict, params) -> Signal:
         stand_down = "gex"                       # dealers short gamma, or inside the dead zone
     elif regime in ("trending_up", "trending_down") and not params.fade_trend:
         stand_down = "trend"                     # issue #12: no short premium into a trend
-    elif regime == "range":
-        structure, sell = "iron_condor", True
-    elif bias == "bullish":
-        structure, sell = "put_credit_spread", True
-    elif bias == "bearish":
-        structure, sell = "call_credit_spread", True
     else:
-        structure, sell = "iron_condor", True
+        structure, sell = _fallback_structure(regime, bias), True
 
     if have_vol:
         head = f"IV {iv:.1%} vs RV_hat {rv:.1%} (ratio {ratio:.2f} vs {params.vrp_ratio_min:.2f})"

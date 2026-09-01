@@ -2,13 +2,23 @@
 
 Where it runs
 -------------
-`review_open()` is called from `desk.py` **only on an opening decision**, after the
-deterministic layers have already done their work: `signal.py` decided *whether* the surface is
-worth selling, `execution.py` picked the strikes, `execution.size()` picked a contract count and
+`review_open()` is called from `desk.py` **on an opening decision**, after the deterministic
+layers have already done their work: `signal.py` decided *whether* the surface is worth selling,
+`execution.py` picked the strikes, `execution.size()` picked a contract count and
 `risk.evaluate()` approved it. Exits, portfolio gates and sizing never touch this module — they
 stay pure Python, which is exactly the split Alpaca recommends for agentic trading systems and
 the reason a hallucination here cannot become a loss there. In practice this is a handful of
 calls a day, not one per 15-minute cron tick.
+
+There is a second, observational call site: `desk.py`'s `_maybe_shadow_debate` calls this with
+`shadow=True` on a candidate the deterministic layer explicitly did NOT clear (today: GEX
+vetoed it), so the desk still has a real transcript against real market data on a day the risk
+gates never let a genuine opening through. The `shadow` flag only changes what the seats are told
+(`agent/seats.py`'s `SHADOW_NOTE`, appended to every system prompt); every safety property below —
+the cap, the clamp, the kill switches — behaves identically either way. What makes a shadow call
+inert is not this module: `_maybe_shadow_debate` never passes its `DebateOutcome` to
+`execution.open_trade` and never mutates the portfolio state, so nothing here needs to know it is
+being watched rather than acted on.
 
 Why the LLM cannot increase risk — by construction, not by prompt
 -----------------------------------------------------------------
@@ -151,6 +161,10 @@ class DebateOutcome:
     elapsed_s: float = 0.0
     transcript: list[dict] = field(default_factory=list)
     started_at: str = ""
+    shadow: bool = False              # observational call (see module docstring) — desk.py must
+                                       # never route this to execution.open_trade regardless of
+                                       # `approved`; the flag exists so the journal is honest, not
+                                       # so anything downstream branches on it.
 
     def to_record(self) -> dict:
         """Journal-ready dict: fully JSON-serializable, every seat's intervention included."""
@@ -159,15 +173,16 @@ class DebateOutcome:
             "cap_contracts": self.cap_contracts, "quant_verdict": self.quant_verdict,
             "thesis": self.thesis, "prediction": self.prediction,
             "elapsed_s": round(self.elapsed_s, 2), "started_at": self.started_at,
-            "transcript": self.transcript,
+            "transcript": self.transcript, "shadow": self.shadow,
         }
 
 
 def _stand_down(reason: str, cap: int, thesis: str, clock: _Clock, started: str,
-                transcript: list[dict], quant_verdict: str = "") -> DebateOutcome:
+                transcript: list[dict], quant_verdict: str = "", *,
+                shadow: bool = False) -> DebateOutcome:
     return DebateOutcome(approved=False, reason=reason, contracts=0, cap_contracts=cap,
                          thesis=thesis, quant_verdict=quant_verdict, elapsed_s=clock.elapsed,
-                         transcript=transcript, started_at=started)
+                         transcript=transcript, started_at=started, shadow=shadow)
 
 
 # --------------------------------------------------------------------------- entry point
@@ -180,6 +195,7 @@ def review_open(
     *,
     clients: DeskClients | None = None,
     budget_s: float | None = None,
+    shadow: bool = False,
 ) -> DebateOutcome:
     """Run the four-seat debate over one proposed opening. Never raises.
 
@@ -206,6 +222,10 @@ def review_open(
     Kwargs:
         clients: inject `DeskClients` with test doubles. Built from env when omitted.
         budget_s: wall-clock ceiling for the whole debate. Defaults to `DESK_DEBATE_BUDGET_S`.
+        shadow: observational call, see the module docstring. Only changes what the seats are
+            told (`seats.SHADOW_NOTE`); every gate and clamp below behaves identically. The
+            caller — not this function — is responsible for never treating the result as a real
+            opening.
     """
     started = datetime.now(UTC).isoformat()
     clock = _Clock(budget_s if budget_s is not None else _budget_s())
@@ -216,36 +236,37 @@ def review_open(
         return DebateOutcome(approved=cap >= 1, reason="debate_disabled", contracts=cap,
                              cap_contracts=cap, thesis=base_thesis, elapsed_s=clock.elapsed,
                              transcript=[{"seat": "system", "note": "DESK_DEBATE=off"}],
-                             started_at=started)
+                             started_at=started, shadow=shadow)
     if cap < 1:
-        return _stand_down("cap_is_zero", cap, base_thesis, clock, started, transcript)
+        return _stand_down("cap_is_zero", cap, base_thesis, clock, started, transcript,
+                           shadow=shadow)
 
     if clients is None:
         try:
             clients = DeskClients.build()
         except seats.SeatError as e:
             return _stand_down(f"debate_unavailable: {e}", cap, base_thesis, clock, started,
-                               [{"seat": "system", "error": str(e)}])
+                               [{"seat": "system", "error": str(e)}], shadow=shadow)
     if not clients.quant or clients.arguer is None:
         return _stand_down("debate_unavailable: seats not wired", cap, base_thesis, clock,
-                           started, transcript)
+                           started, transcript, shadow=shadow)
 
     structure = str(getattr(signal, "structure", "")).strip().lower()
 
     # --- seat 1: Quant ensemble (parallel, majority or abstain) ---------------------------
     q_timeout = clock.seat_timeout(QUANT_SHARE)
-    ballots = _run_quant(clients.quant, signal, selection, cap, q_timeout)
+    ballots = _run_quant(clients.quant, signal, selection, cap, q_timeout, shadow=shadow)
     transcript.extend(b.to_record() for b in ballots)
     verdict, q_reason = seats.consensus(ballots, len(clients.quant), structure)
     transcript.append({"seat": "quant_ensemble", "verdict": verdict, "reason": q_reason,
                        "models": len(clients.quant)})
     if verdict != "confirm":
         return _stand_down(f"quant_{verdict}: {q_reason}", cap, base_thesis, clock, started,
-                           transcript, verdict)
+                           transcript, verdict, shadow=shadow)
 
     # --- seats 2 & 3: Bull and Bear (parallel, must cite the signal) ----------------------
     a_timeout = clock.seat_timeout(ARGUER_SHARE)
-    bull, bear = _run_arguers(clients.arguer, signal, selection, cap, a_timeout)
+    bull, bear = _run_arguers(clients.arguer, signal, selection, cap, a_timeout, shadow=shadow)
     similarity = adversarial_ratio(bull, bear)
     transcript.extend([bull.to_record(), bear.to_record(),
                        {"seat": "debate_quality", "ok": True,
@@ -254,26 +275,27 @@ def review_open(
     if not (bull.ok and bear.ok):
         bad = ", ".join(f"{a.role}: {a.error}" for a in (bull, bear) if not a.ok)
         return _stand_down(f"debate_incomplete: {bad}", cap, base_thesis, clock, started,
-                           transcript, verdict)
+                           transcript, verdict, shadow=shadow)
 
     # --- seat 4: Desk Head (final size, always <= cap; falsifiable thesis) ----------------
     d_timeout = clock.seat_timeout()
     head = _collect(_spawn(lambda: seats.desk_head(
         clients.arguer, signal, selection, cap, verdict, q_reason, ballots, bull, bear,
-        d_timeout)), d_timeout, lambda err: DeskDecision(ok=False, error=err))
+        d_timeout, shadow=shadow)), d_timeout, lambda err: DeskDecision(ok=False, error=err))
     transcript.append(head.to_record())
 
     if not head.ok:
         return _stand_down(f"desk_head_unusable: {head.error}", cap, base_thesis, clock, started,
-                           transcript, verdict)
+                           transcript, verdict, shadow=shadow)
     if head.decision != "approve":
-        return _stand_down("desk_head_veto", cap, base_thesis, clock, started, transcript, verdict)
+        return _stand_down("desk_head_veto", cap, base_thesis, clock, started, transcript,
+                           verdict, shadow=shadow)
 
     # THE clamp. Nothing above this line can widen risk; nothing below it can either.
     contracts = max(0, min(int(head.contracts), cap))
     if contracts < 1:
         return _stand_down("desk_head_sized_to_zero", cap, base_thesis, clock, started,
-                           transcript, verdict)
+                           transcript, verdict, shadow=shadow)
     if contracts < cap:
         transcript.append({"seat": "system", "note": f"desk head trimmed {cap} -> {contracts}"})
     if int(head.contracts) > cap:
@@ -283,7 +305,7 @@ def review_open(
     return DebateOutcome(
         approved=True, reason="approved", contracts=contracts, cap_contracts=cap,
         thesis=head.thesis or base_thesis, prediction=head.prediction, quant_verdict=verdict,
-        elapsed_s=clock.elapsed, transcript=transcript, started_at=started,
+        elapsed_s=clock.elapsed, transcript=transcript, started_at=started, shadow=shadow,
     )
 
 
@@ -331,11 +353,11 @@ def _collect(task: _Task, timeout: float, fallback):
 
 
 def _run_quant(members: list[tuple[str, SeatClient]], signal: Any, selection: dict, cap: int,
-               timeout: float) -> list[QuantBallot]:
+               timeout: float, *, shadow: bool = False) -> list[QuantBallot]:
     """Fan the same ballot out to every ensemble member at once, under one shared deadline."""
     running = [
         (model, _spawn(lambda c=client, m=model: seats.quant_ballot(
-            c, m, signal, selection, cap, timeout)))
+            c, m, signal, selection, cap, timeout, shadow=shadow)))
         for model, client in members
     ]
     deadline = time.monotonic() + timeout
@@ -347,7 +369,7 @@ def _run_quant(members: list[tuple[str, SeatClient]], signal: Any, selection: di
 
 
 def _run_arguers(client: SeatClient, signal: Any, selection: dict, cap: int,
-                 timeout: float) -> tuple[Argument, Argument]:
+                 timeout: float, *, shadow: bool = False) -> tuple[Argument, Argument]:
     """Bull first, then Bear rebutting Bull. Sequential on purpose.
 
     Run in parallel the two seats answer the same question in isolation, and with one model at
@@ -360,7 +382,8 @@ def _run_arguers(client: SeatClient, signal: Any, selection: dict, cap: int,
     half = max(timeout / 2, MIN_SEAT_TIMEOUT)
     deadline = time.monotonic() + timeout
 
-    bull = _collect(_spawn(lambda: seats.argue(client, "bull", signal, selection, cap, half)),
+    bull = _collect(_spawn(lambda: seats.argue(client, "bull", signal, selection, cap, half,
+                                               shadow=shadow)),
                     min(half, deadline - time.monotonic()),
                     lambda err: Argument(role="bull", ok=False, error=err))
 
@@ -370,7 +393,7 @@ def _run_arguers(client: SeatClient, signal: Any, selection: dict, cap: int,
 
     bear = _collect(
         _spawn(lambda: seats.argue(client, "bear", signal, selection, cap, min(half, left),
-                                   opponent=bull if bull.ok else None)),
+                                   opponent=bull if bull.ok else None, shadow=shadow)),
         min(half, left),
         lambda err: Argument(role="bear", ok=False, error=err))
     return bull, bear
