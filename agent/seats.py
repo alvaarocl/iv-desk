@@ -161,6 +161,23 @@ def _trade_block(signal: Any, selection: dict, cap_contracts: int) -> str:
     }, indent=2, default=str, sort_keys=True)
 
 
+# --------------------------------------------------------------------------- shadow mode
+#
+# A shadow call exercises a seat on a candidate the deterministic layer did NOT clear (today:
+# GEX vetoed it) purely to produce a real transcript for the record. Appended to the end of every
+# system prompt, never the start — `tests/test_debate.py:_seat_of` routes the quant seat by
+# `system.startswith("You are a quantitative")`, so anything prepended would break that router.
+
+SHADOW_NOTE = (
+    "\n\nIMPORTANT — SHADOW EVALUATION, READ CAREFULLY: this is NOT a live trade. Despite any "
+    "earlier sentence in this prompt, the deterministic layer did NOT clear every gate this time "
+    "(see stand_down / gex_state / sell_premium in the SIGNAL below — they are reported "
+    "honestly). Whatever you decide, NOTHING will be opened: this call exists purely to exercise "
+    "the desk end to end and leave a reviewable record on a day the market itself never let a "
+    "real signal through. Argue and decide with the same rigor as a real trade."
+)
+
+
 # --------------------------------------------------------------------------- Quant seat
 
 QUANT_SYSTEM = (
@@ -205,11 +222,12 @@ def quant_prompt(signal: Any, selection: dict, cap_contracts: int) -> str:
 
 
 def quant_ballot(client: SeatClient, model: str, signal: Any, selection: dict,
-                 cap_contracts: int, timeout: float) -> QuantBallot:
+                 cap_contracts: int, timeout: float, *, shadow: bool = False) -> QuantBallot:
     """Run one ensemble member. Never raises — a failure is a ballot with `ok=False`."""
     raw = ""
     try:
-        raw = client.complete(system=QUANT_SYSTEM,
+        system = QUANT_SYSTEM + (SHADOW_NOTE if shadow else "")
+        raw = client.complete(system=system,
                               user=quant_prompt(signal, selection, cap_contracts),
                               max_tokens=QUANT_MAX_TOKENS, timeout=timeout)
         obj = parse_json_object(raw)
@@ -325,13 +343,13 @@ def arguer_prompt(signal: Any, selection: dict, cap_contracts: int,
 
 
 def argue(client: SeatClient, role: str, signal: Any, selection: dict, cap_contracts: int,
-          timeout: float, opponent: Argument | None = None) -> Argument:
+          timeout: float, opponent: Argument | None = None, *, shadow: bool = False) -> Argument:
     """Run the Bull or Bear seat. Never raises; `ok=False` means the seat is unusable.
 
     An argument that cites fewer than two real `Signal` fields is rejected: the whole point of
     this seat is that it reasons over the surface we measured, not over vibes.
     """
-    system = BULL_SYSTEM if role == "bull" else BEAR_SYSTEM
+    system = (BULL_SYSTEM if role == "bull" else BEAR_SYSTEM) + (SHADOW_NOTE if shadow else "")
     allowed = set(signal_facts(signal))
     raw = ""
     try:
@@ -425,7 +443,8 @@ def desk_head_prompt(signal: Any, selection: dict, cap_contracts: int, quant_ver
 
 def desk_head(client: SeatClient, signal: Any, selection: dict, cap_contracts: int,
               quant_verdict: str, quant_reason: str, ballots: list[QuantBallot],
-              bull: Argument, bear: Argument, timeout: float) -> DeskDecision:
+              bull: Argument, bear: Argument, timeout: float, *,
+              shadow: bool = False) -> DeskDecision:
     """Run the Desk Head seat. Never raises; `ok=False` is an abstention.
 
     Validates the falsifiable prediction: a range that is inverted, non-numeric or nowhere near
@@ -436,7 +455,7 @@ def desk_head(client: SeatClient, signal: Any, selection: dict, cap_contracts: i
     raw = ""
     try:
         raw = client.complete(
-            system=DESK_HEAD_SYSTEM,
+            system=DESK_HEAD_SYSTEM + (SHADOW_NOTE if shadow else ""),
             user=desk_head_prompt(signal, selection, cap_contracts, quant_verdict, quant_reason,
                                   ballots, bull, bear),
             max_tokens=DESK_HEAD_MAX_TOKENS, timeout=timeout)

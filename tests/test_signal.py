@@ -392,3 +392,18 @@ def test_missing_expiration_stands_the_signal_down_before_any_other_gate():
     assert s.stand_down == "expiration"
     assert s.sell_premium is False and s.structure == "none"
     assert s.expiration == ""
+
+
+# ---------- _fallback_structure — shared by the real gate ladder and the shadow-debate ----------
+
+
+@pytest.mark.parametrize("regime, bias, expected", [
+    ("range", "neutral", "iron_condor"),
+    ("range", "bullish", "iron_condor"),   # regime == "range" wins regardless of bias
+    ("range", "bearish", "iron_condor"),
+    ("chop", "neutral", "iron_condor"),
+    ("chop", "bullish", "put_credit_spread"),
+    ("chop", "bearish", "call_credit_spread"),
+])
+def test_fallback_structure_matches_the_real_gate_ladder(regime, bias, expected):
+    assert sg._fallback_structure(regime, bias) == expected

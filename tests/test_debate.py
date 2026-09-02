@@ -99,10 +99,12 @@ class ScriptedClient:
     def __init__(self, script: dict[str, object]) -> None:
         self.script = script
         self.calls: list[tuple[str, str]] = []
+        self.systems: list[tuple[str, str]] = []  # (seat, full system prompt) — shadow-note tests
 
     def complete(self, *, system: str, user: str, max_tokens: int, timeout: float) -> str:
         seat = _seat_of(system)
         self.calls.append((seat, user))
+        self.systems.append((seat, system))
         r = self.script.get(seat, "")
         if isinstance(r, BaseException):
             raise r
@@ -129,10 +131,11 @@ def _debate_on(monkeypatch):
     monkeypatch.setenv("DESK_DEBATE", "required")
 
 
-def run(quant, arguer_script, cap=3, budget_s=5.0) -> debate.DebateOutcome:
+def run(quant, arguer_script, cap=3, budget_s=5.0, *, signal=None, shadow=False,
+       ) -> debate.DebateOutcome:
     return debate.review_open(
-        FakeSignal(), SELECTION, cap, "deterministic fallback thesis",
-        clients=clients(quant, arguer_script), budget_s=budget_s,
+        signal or FakeSignal(), SELECTION, cap, "deterministic fallback thesis",
+        clients=clients(quant, arguer_script), budget_s=budget_s, shadow=shadow,
     )
 
 
@@ -495,3 +498,58 @@ def test_the_journal_records_whether_the_debate_was_actually_adversarial():
     assert len(quality) == 1
     assert "bull_bear_similarity" in quality[0]
     assert isinstance(quality[0]["adversarial"], bool)
+
+
+# ------------------------------------------------------- shadow mode (observation-only debate)
+
+
+def test_shadow_appends_the_note_to_every_seat_without_disturbing_the_prefix():
+    """`_seat_of` routes the quant seat by `system.startswith(...)` — the note must be appended,
+    never prepended, or every quant call in this file would silently misroute to desk_head."""
+    c = clients([quant_json()] * 3, happy_arguer())
+    out = debate.review_open(FakeSignal(), SELECTION, 2, "t", clients=c, budget_s=5.0, shadow=True)
+
+    assert out.shadow is True
+    systems = dict(c.arguer.systems)
+    assert systems["bull"].endswith(seats.SHADOW_NOTE)
+    assert systems["bear"].endswith(seats.SHADOW_NOTE)
+    quant_systems = [sys_ for _, client in c.quant for _, sys_ in client.systems]
+    assert all(s.endswith(seats.SHADOW_NOTE) for s in quant_systems)
+    desk_head_systems = [s for seat, s in c.arguer.systems if seat == "desk_head"]
+    assert desk_head_systems and desk_head_systems[0].endswith(seats.SHADOW_NOTE)
+
+
+def test_non_shadow_calls_never_carry_the_note():
+    c = clients([quant_json()] * 3, happy_arguer())
+    debate.review_open(FakeSignal(), SELECTION, 2, "t", clients=c, budget_s=5.0)  # shadow=False
+
+    assert all(seats.SHADOW_NOTE not in s for _, s in c.arguer.systems)
+    assert all(seats.SHADOW_NOTE not in s for _, client in c.quant for _, s in client.systems)
+
+
+def test_shadow_flag_survives_every_stand_down_path():
+    """A shadow call that aborts early (quant no-consensus, veto, zero-sized, disabled desk) must
+    still report shadow=True — desk.py's dedupe and the dashboard both key off this field."""
+    out = debate.review_open(FakeSignal(), SELECTION, 2, "t",
+                             clients=clients([RuntimeError("down")] * 3, happy_arguer()),
+                             budget_s=5.0, shadow=True)
+    assert out.approved is False and out.shadow is True
+
+    out = debate.review_open(FakeSignal(), SELECTION, 0, "t", budget_s=5.0, shadow=True)
+    assert out.reason == "cap_is_zero" and out.shadow is True
+
+
+def test_shadow_off_pass_through_still_reports_shadow(monkeypatch):
+    monkeypatch.setenv("DESK_DEBATE", "off")
+    out = debate.review_open(FakeSignal(), SELECTION, 2, "t", shadow=True)
+    assert out.reason == "debate_disabled" and out.shadow is True
+
+
+def test_shadow_outcome_serializes_the_flag():
+    out = debate.review_open(FakeSignal(), SELECTION, 2, "t",
+                             clients=clients([quant_json()] * 3, happy_arguer()),
+                             budget_s=5.0, shadow=True)
+    assert out.to_record()["shadow"] is True
+
+    out2 = run([quant_json()] * 3, happy_arguer())
+    assert out2.to_record()["shadow"] is False

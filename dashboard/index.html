@@ -77,6 +77,7 @@
     text-transform: uppercase; padding: 2px 8px; border-radius: 99px; }
   .v-open { color: var(--up); background: color-mix(in srgb, var(--up) 15%, transparent); }
   .v-stand { color: var(--down); background: color-mix(in srgb, var(--down) 15%, transparent); }
+  .v-shadow { color: var(--muted); background: color-mix(in srgb, var(--muted) 15%, transparent); }
   .debate .thesis { margin: 8px 0; }
   .debate .pred { font-family: var(--mono); font-size: 12px; color: var(--muted); }
   .debate .seats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
@@ -191,8 +192,11 @@ function renderTiles(equity, journal) {
   const opens = journal.filter((e) => e.event === "opened" && e.trade);
   const exits = journal.filter((e) => e.event === "exit" && e.pnl != null);
   const openBook = opens.length - exits.length;
-  const debates = journal.filter((e) => e.event === "debate");
+  // Shadow debates exercise the LLM desk on a candidate GEX vetoed — real data, no position.
+  // Kept out of "Desk decisions" so that counter only ever reflects trades that could have opened.
+  const debates = journal.filter((e) => e.event === "debate" && !e.shadow);
   const standDowns = debates.filter((d) => d.approved === false).length;
+  const shadowDebates = journal.filter((e) => e.event === "debate" && e.shadow);
 
   const mk = (k, v, sub, vcls) => {
     const t = el("div", "tile");
@@ -205,6 +209,10 @@ function renderTiles(equity, journal) {
   mk("P&L", sign + "$" + NUM.format(Math.abs(pnl)), (pnl >= 0 ? "+" : "") + pct.toFixed(2) + "%", dir);
   mk("Open positions", String(Math.max(openBook, 0)), opens.length + " opened · " + exits.length + " closed", "");
   mk("Desk decisions", String(debates.length), standDowns + " reasoned stand-downs", "");
+  if (shadowDebates.length) {
+    mk("Shadow evaluations", String(shadowDebates.length),
+       "GEX vetoed the trade — no position opened", "");
+  }
 }
 
 function shortTime(iso) {
@@ -252,8 +260,12 @@ function renderDebates(journal) {
   for (const d of debates) {
     const c = el("div", "debate");
     const top = el("div", "top");
-    top.append(el("span", "sym", (d.underlying || "?") + (d.contracts ? " · " + d.contracts + "×" : "")));
-    const v = el("span", "verdict " + (d.approved ? "v-open" : "v-stand"), d.approved ? "open" : "stand down");
+    // Shadow rows never opened anything, no matter what `approved` says — the badge must never
+    // read as a real position or a judge skimming the dashboard will think a trade happened.
+    top.append(el("span", "sym", (d.underlying || "?") + (!d.shadow && d.contracts ? " · " + d.contracts + "×" : "")));
+    const verdictCls = d.shadow ? "v-shadow" : (d.approved ? "v-open" : "v-stand");
+    const verdictTxt = d.shadow ? "shadow · no position" : (d.approved ? "open" : "stand down");
+    const v = el("span", "verdict " + verdictCls, verdictTxt);
     top.append(v);
     c.append(top);
     if (d.thesis) c.append(el("p", "thesis", d.thesis));
