@@ -263,10 +263,10 @@ issue #24 · **`docs/RUNBOOK.md` creado**
 - `satellite_frac` **nunca se lee**. `is_satellite` es siempre `False`. La rama `debit_spread` pone `sell = False`, con lo que `desk.py:85` la salta y `_pick()` ni tiene rama para ella. **El "modo adaptativo" que `CONCEPT.md` vende como mitigación del riesgo de baja volatilidad no está implementado** — y ese riesgo es exactamente el que se ha materializado.
 - `conviction` se calcula y tiene 0 usos fuera de `signal.py`.
 
-### 15. Dependencias declaradas y no usadas
+### 15. ~~Dependencias declaradas y no usadas~~ ✅ RESUELTO (30 ago) — esta entrada estaba desactualizada
 `pyproject.toml` · issue #15
 
-Cero imports de: `alpaca-py`, `pandas`, `scipy`, `openai`, `pydantic`, `rich`, `anthropic`. Solo se usan `numpy`, `httpx` y `python-dotenv`. Declarar el **SDK oficial de Alpaca y no usarlo**, en un hackathon de Alpaca, es justo el detalle que un juez mira.
+Esta entrada seguía sin marcar aunque el fix ya estaba hecho: `pyproject.toml` lleva desde el 30 ago con `alpaca-py`, `pandas`, `scipy`, `pydantic`, `rich` y `anthropic` fuera (comentario en el propio fichero: *"Removed 2026-08-30 (issue #15)"*). Verificado el 2 sep que las 5 dependencias declaradas hoy tienen import real: `httpx` (`marketdata.py`), `numpy` (`signal.py`), `python-dotenv` (`broker.py`/`config.py`/`debate.py`/`marketdata.py`), `openai` (`seats.py` — habla el API compatible de Featherless, no el SDK de OpenAI de pago) y `tzdata` (`ZoneInfo` en `calendar.py`/`desk.py`/`execution.py`). Nada declarado y sin usar.
 
 ### 16. El sizing no puede puntuar, pero sí puede perder — 🔄 REABIERTO Y REVERTIDO (31 ago)
 `config.py:32` · issue #16
@@ -331,10 +331,22 @@ Cada subyacente posterior al primero se evaluaba contra la delta del libro *prev
 condor mueve 0,10–0,20 y tres aperturas en el mismo run podían pasar a 0,28 cada una y dejar el
 libro en 0,84. Una línea: `pf.net_delta += proposed.net_delta`.
 
-### 18. Fechas del calendario macro sin verificar
+### 18. ~~Fechas del calendario macro sin verificar~~ ✅ VERIFICADO (2 sep)
 `calendar.py:16-22` · issue #17
 
-El propio docstring lo pide. Ya verificado por nuestra parte: **el lun 31 ago es sesión hábil** (Labor Day 2026 es el 7 sep). Quedan las 5 fechas de `EVENTS` por contrastar.
+**El lun 31 ago es sesión hábil** (Labor Day 2026 es el 7 sep). Las 5 fechas de `EVENTS`
+verificadas el 2 sep contra el patrón real de publicación de cada informe (día de la semana
+calculado, no supuesto):
+
+| Fecha | Día | Evento | Regla real |
+|---|---|---|---|
+| 2026-09-01 | martes | ISM Manufacturing PMI | 1er día hábil del mes, 10:00 ET |
+| 2026-09-02 | miércoles | ADP employment | miércoles anterior al NFP, 08:15 ET |
+| 2026-09-03 | jueves | Initial jobless claims | siempre jueves, 08:30 ET |
+| 2026-09-03 | jueves | ISM Services PMI | 3er día hábil del mes, 10:00 ET |
+| 2026-09-04 | viernes | NFP / Employment Situation | 1er viernes del mes, 08:30 ET |
+
+Las 5 encajan exactamente con su regla de calendario real. Sin discrepancias.
 
 ---
 
