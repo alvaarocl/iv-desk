@@ -1,0 +1,14 @@
+# Cloud pacemaker for IV Desk. Replaces the local ops/pacemaker.sh, which depends on a laptop
+# staying awake and a Claude Code session staying alive for the length of a trading session —
+# both failed at least once during the 1-4 Sep competition window. This runs on Cloudflare's own
+# Cron Triggers infrastructure: no laptop, no local session, nothing to keep open.
+name = "iv-desk-pacemaker"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+
+# Same window as .github/workflows/desk.yml's own `schedule:` cron (UTC): 13:30-20:15 UTC,
+# Mon-Fri (~09:30-16:15 ET / 15:30-22:15 CEST). GitHub's cron is best-effort and has been
+# unreliable this week even on a public repo (3 of 24 runs on 1 Sep) — this is the primary tick
+# source now, not a backstop.
+[triggers]
+crons = ["*/15 13-20 * * 1-5"]
