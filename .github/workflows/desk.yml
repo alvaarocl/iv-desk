@@ -26,6 +26,9 @@ concurrency:
 
 permissions:
   contents: write
+  # Needed only to dispatch pages.yml explicitly from the "Deploy dashboard" step below — see
+  # its comment for why `git push` alone was never enough.
+  actions: write
 
 env:
   # Pinned — alpacahq/cli is an alpha preview whose flags/output "may change without notice".
@@ -94,18 +97,35 @@ jobs:
         run: uv run python -m agent.desk
 
       - name: Persist journal
+        id: persist
         if: always()
         run: |
           set -euo pipefail
           git config user.name "iv-desk-bot"
           git config user.email "bot@users.noreply.github.com"
           git add data/
-          git diff --cached --quiet && exit 0
+          git diff --cached --quiet && { echo "pushed=false" >> "$GITHUB_OUTPUT"; exit 0; }
           git commit -m "loop $(date -u +%FT%TZ)"
           # Rebase onto any concurrent commit before pushing; retry once. A lost push would make
           # the agent forget open positions, so this must not be best-effort (issue #3, #23).
           for attempt in 1 2 3; do
-            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push && exit 0
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push; then
+              echo "pushed=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
             echo "push attempt $attempt failed; retrying"; sleep 5
           done
           echo "::error::could not persist journal after 3 attempts"; exit 1
+
+      - name: Deploy dashboard
+        # `git push` above authenticates with the ephemeral GITHUB_TOKEN, and GitHub deliberately
+        # does not let a push made with that token trigger another workflow's `on: push` — the
+        # anti-recursion rule that (until this fix) silently kept pages.yml from ever redeploying
+        # off the loop's own commits, despite its `paths: data/**` trigger looking correct on
+        # paper. Every "loop" commit for 3 days pushed real data and never once woke pages.yml;
+        # the dashboard only moved on a human-authored push (e.g. a PR merge). An explicit
+        # `workflow_dispatch` API call is a different mechanism from a push event, so it isn't
+        # subject to that restriction — it just needs `actions: write` on this job's token.
+        if: always() && steps.persist.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --repo "${{ github.repository }}"
