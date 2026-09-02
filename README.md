@@ -34,8 +34,13 @@ Three ideas, in order of importance:
 
 ![Architecture](assets/architecture.svg)
 
-<!-- TODO antes de la entrega: tres GIFs recortados del vídeo. Especificación en assets/GIFS.md.
-     No los referencio todavía para que el README no muestre imágenes rotas. -->
+None of these show P&L — they show the agent **deciding**, which is the axis nobody else is
+going to show you. Real data, 2 Sep, straight from `data/journal.jsonl` — see
+[`assets/GIFS.md`](assets/GIFS.md) for how they're generated.
+
+| The desk refusing to trade | The mesa debating a GEX-vetoed candidate | A full session, evaluated |
+|---|---|---|
+| ![](assets/gif-standdown.gif) | ![](assets/gif-debate.gif) | ![](assets/gif-dashboard.gif) |
 
 ## The honest headline
 

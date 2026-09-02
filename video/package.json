@@ -7,6 +7,10 @@
     "studio": "remotion studio",
     "render": "remotion render IVDesk out/iv-desk-presentation.mp4 --codec=h264 --muted",
     "still": "remotion still IVDesk",
+    "gif1": "remotion render Gif1StandDown out/gif1-standdown.mp4 --codec=h264 --muted",
+    "gif2": "remotion render Gif2Debate out/gif2-debate.mp4 --codec=h264 --muted",
+    "gif3": "remotion render Gif3Dashboard out/gif3-dashboard.mp4 --codec=h264 --muted",
+    "gifs": "npm run gif1 && npm run gif2 && npm run gif3",
     "typecheck": "tsc --noEmit",
     "lint": "remotion lint src"
   },
