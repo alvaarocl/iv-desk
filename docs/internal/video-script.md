@@ -133,4 +133,4 @@ la curva de equity y las posiciones → corte al `exit` con `reason` y `pnl`.
 - No enseñar `.env`, claves ni el `account_number` de la cuenta de testing. `PA39HSCQE8S3` sí puede
   salir: va en el formulario de la entrega.
 - Si sobran segundos, el primer recorte es el bloque 2:00–2:30 (ejecución), no el no-trade.
-- Subir a YouTube **no listado** y pegar el enlace en `docs/SUBMISSION.md` (entregable #5).
+- Subir a YouTube **no listado** y pegar el enlace en `docs/internal/SUBMISSION.md` (entregable #5).

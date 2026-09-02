@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 560" width="1180" height="560" font-family="ui-sans-serif,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8b949e"/>
+    </marker>
+    <style>
+      .card{fill:none;stroke:#8b949e;stroke-width:1.5;rx:10}
+      .det{stroke:#3fb950}
+      .llm{stroke:#a371f7;stroke-dasharray:5 3}
+      .t{fill:#8b949e;font-size:13px}
+      .h{fill:#adbac7;font-size:15px;font-weight:600}
+      .k{fill:#3fb950;font-size:11px;font-weight:600;letter-spacing:.06em}
+      .kl{fill:#a371f7;font-size:11px;font-weight:600;letter-spacing:.06em}
+      .m{fill:#6e7681;font-size:11.5px;font-style:italic}
+      .ln{stroke:#8b949e;stroke-width:1.5;fill:none;marker-end:url(#a)}
+    </style>
+  </defs>
+
+  <text x="24" y="34" class="h" font-size="17">IV Desk — one 15-minute loop</text>
+  <text x="24" y="56" class="m">Everything that can lose money is deterministic Python. The LLM sits in one box, and it can only make the trade smaller.</text>
+
+  <!-- 1 signal -->
+  <rect x="24" y="90" width="250" height="150" class="card det"/>
+  <text x="44" y="116" class="k">DETERMINISTIC</text>
+  <text x="44" y="140" class="h">Signal</text>
+  <text x="44" y="164" class="t">IV / RV forecast → VRP ratio</text>
+  <text x="44" y="184" class="t">Dealer gamma (GEX) from OI</text>
+  <text x="44" y="204" class="t">Regime, skew, expiry pick</text>
+  <text x="44" y="228" class="m">agent/signal.py</text>
+
+  <!-- stand down -->
+  <rect x="24" y="290" width="250" height="86" class="card"/>
+  <text x="44" y="316" class="h">Stand down</text>
+  <text x="44" y="338" class="t">reason: vrp | gex | trend | data</text>
+  <text x="44" y="362" class="m">94% of sessions. Logged, not silent.</text>
+  <path d="M149 240 L149 288" class="ln"/>
+
+  <!-- 2 risk -->
+  <rect x="320" y="90" width="250" height="150" class="card det"/>
+  <text x="340" y="116" class="k">DETERMINISTIC · NO LLM</text>
+  <text x="340" y="140" class="h">Risk Officer</text>
+  <text x="340" y="164" class="t">8 hard gates, no discretion</text>
+  <text x="340" y="184" class="t">Returns a contract cap</text>
+  <text x="340" y="204" class="t">Any veto ends the loop</text>
+  <text x="340" y="228" class="m">agent/risk.py</text>
+  <path d="M276 165 L316 165" class="ln"/>
+
+  <!-- 3 desk -->
+  <rect x="616" y="90" width="250" height="150" class="card llm"/>
+  <text x="636" y="116" class="kl">LLM · OPEN DECISIONS ONLY</text>
+  <text x="636" y="140" class="h">The Desk</text>
+  <text x="636" y="164" class="t">Quant ensemble → consensus</text>
+  <text x="636" y="184" class="t">Bull argues, Bear rebuts</text>
+  <text x="636" y="204" class="t">Desk Head writes the thesis</text>
+  <text x="636" y="228" class="m">agent/seats.py · debate.py</text>
+  <path d="M572 165 L612 165" class="ln"/>
+  <text x="576" y="156" class="t" font-size="11">cap</text>
+
+  <!-- clamp callout -->
+  <rect x="616" y="290" width="250" height="86" class="card llm"/>
+  <text x="636" y="314" class="kl">THE SAFETY PROPERTY</text>
+  <text x="636" y="340" class="t" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="11.5">min(head.contracts, cap)</text>
+  <text x="636" y="362" class="m">Trim or veto. Never widen.</text>
+  <path d="M741 240 L741 288" class="ln"/>
+
+  <!-- 4 execution -->
+  <rect x="912" y="90" width="244" height="150" class="card det"/>
+  <text x="932" y="116" class="k">DETERMINISTIC</text>
+  <text x="932" y="140" class="h">Execution</text>
+  <text x="932" y="164" class="t">4-leg mleg via Alpaca CLI</text>
+  <text x="932" y="184" class="t">Signed limit: credit is negative</text>
+  <text x="932" y="204" class="t">TP 50% · stop 2× · expiry close</text>
+  <text x="932" y="228" class="m">agent/execution.py · broker.py</text>
+  <path d="M868 165 L908 165" class="ln"/>
+
+  <!-- journal -->
+  <rect x="320" y="440" width="836" height="86" class="card"/>
+  <text x="340" y="466" class="h">Journal — the falsifiable record</text>
+  <text x="340" y="490" class="t">Every signal, every rejection with the gate that caused it, every debate transcript, every fill and exit.</text>
+  <text x="340" y="512" class="m">data/journal.jsonl — committed by the workflow on every run, including the runs that traded nothing.</text>
+  <path d="M445 240 L445 438" class="ln"/>
+  <path d="M741 378 L741 438" class="ln"/>
+  <path d="M1034 240 L1034 438" class="ln"/>
+</svg>

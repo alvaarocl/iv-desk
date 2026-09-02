@@ -74,7 +74,7 @@ Fuente: `agent/calendar.py`. El gate bloquea **abrir** posiciones **±2 h** alre
 **desde la apertura hasta las 18:00 CEST**. En esas dos sesiones la mesa no abre nada durante las
 primeras 2,5 horas — eso es *correcto y deseado*, y va al journal como `rejected: macro event
 blackout`, que es exactamente el material del argumento "una mesa que sabe cuándo no operar"
-([`VIABILIDAD.md`](VIABILIDAD.md)). No lo confundáis con que el desk esté roto.
+([`VIABILIDAD.md`](internal/VIABILIDAD.md)). No lo confundáis con que el desk esté roto.
 
 ---
 

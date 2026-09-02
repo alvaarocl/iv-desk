@@ -56,7 +56,7 @@ Motivo: la auditoría es el mapa desde el que decidimos qué hacer y en qué ord
 de entrega en el eje de robustez. Una auditoría que describe defectos ya arreglados es peor que no
 tenerla, porque nos hace repetir trabajo y nos hace desconfiar del resto del documento.
 
-Lo mismo aplica a [`docs/STATUS.md`](docs/STATUS.md) cuando un PR cambia el estado de un componente, y
+Lo mismo aplica a [`docs/internal/STATUS.md`](docs/internal/STATUS.md) cuando un PR cambia el estado de un componente, y
 a [`docs/write-up.md`](docs/write-up.md), que **se escribe desde el código y nunca desde el plan**.
 
 ---

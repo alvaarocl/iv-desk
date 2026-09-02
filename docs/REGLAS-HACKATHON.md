@@ -30,7 +30,7 @@ Verificado el **29 ago 2026** contra las fuentes públicas del evento. Lo que vi
 
 Nuestro `CONCEPT.md` monta una tabla de **cinco** criterios al ~20% metiendo **Social Engagement**. Eso es incorrecto: el social es un **premio aparte**, no un eje del rubro.
 
-**Consecuencia práctica:** el P&L pesa **~25%, no ~20%**. Este documento **decía** *"Cedemos este"*; corregido el 29 ago. Ceder un cuarto del rubro sería defendible si a cambio el motor no pudiera perder dinero — pero con la configuración actual cedemos el upside y conservamos todo el downside. Ver [`VIABILIDAD.md`](VIABILIDAD.md) y el issue #16.
+**Consecuencia práctica:** el P&L pesa **~25%, no ~20%**. Este documento **decía** *"Cedemos este"*; corregido el 29 ago. Ceder un cuarto del rubro sería defendible si a cambio el motor no pudiera perder dinero — pero con la configuración actual cedemos el upside y conservamos todo el downside. Ver [`VIABILIDAD.md`](internal/VIABILIDAD.md) y el issue #16.
 
 ---
 

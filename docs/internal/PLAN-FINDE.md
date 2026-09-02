@@ -80,7 +80,7 @@ Cierra **#18**.
 - Quitar `anthropic` de `pyproject.toml` una vez A3 está hecho (termina #15).
 
 ### A8 · Guion del vídeo · P1 · entregar a Álvaro el domingo · issue
-2–3 min. Estructura en `docs/SUBMISSION.md`. Foco: el agente decidiendo solo — el debate, la tesis,
+2–3 min. Estructura en `docs/internal/SUBMISSION.md`. Foco: el agente decidiendo solo — el debate, la tesis,
 **el momento en que se niega a operar**. No el P&L.
 
 ---

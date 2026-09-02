@@ -8,7 +8,7 @@ const sans = loadSans('normal', {weights: ['400', '500', '600', '700']});
 export const MONO = mono.fontFamily;
 export const SANS = sans.fontFamily;
 
-// Operations-board palette — matches dashboard/index.html and docs/estado.html.
+// Operations-board palette — matches dashboard/index.html and docs/internal/estado.html.
 export const C = {
   bg: '#13161b',
   surface: '#1b1f26',

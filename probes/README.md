@@ -38,7 +38,7 @@ Auth works, account is the fresh one with $100k, options level is 3, an option c
 
 | Probe result | Consequence |
 |---|---|
-| Snapshot has no greeks/IV | Compute greeks via Black-Scholes in `agent/surface.py` from mid + risk-free rate |
+| Snapshot has no greeks/IV | Compute greeks via Black-Scholes in `the signal layer (`agent/signal.py`)` from mid + risk-free rate |
 | OI sweep too slow / rate-limited | Narrow GEX strike window to ±3%, refresh once/day |
 | `mleg` rejects 4 legs | Structure builder emits paired verticals instead of condors |
 | Options level < 3 | Re-open account / request upgrade before anything else |

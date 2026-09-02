@@ -1,7 +1,7 @@
 # Submission checklist (issue #21)
 
 **Deadline: viernes 4 sep, 15:00 UTC (17:00 CEST).** No a las 16:55.
-Plataforma: lablab.ai. Reglas verificadas en [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md).
+Plataforma: lablab.ai. Reglas verificadas en [`REGLAS-HACKATHON.md`](../REGLAS-HACKATHON.md).
 
 ---
 
@@ -31,7 +31,7 @@ renderizado **sin audio**. La narración va aparte: `video/NARRATION.md` (inglé
 se compone bajo el vídeo. Siete escenas · ~2:52 · toda cifra sale de `backtest/RESULTS.md` o del
 transcript real del debate.
 
-El `docs/video-script.md` de Ángel (screen-recordings) queda como **B-roll opcional** — no es la
+El `docs/internal/video-script.md` de Ángel (screen-recordings) queda como **B-roll opcional** — no es la
 entrega principal.
 
 El vídeo **no** vende el P&L (4 sesiones = lotería de varianza). Vende **el agente decidiendo solo**
@@ -43,7 +43,7 @@ y el momento en que se niega a operar.
    sobrevalorado, y solo cuando lo está." Una frase, sin jerga.
 2. **0:20–0:50 — La arquitectura.** Señal determinista (VRP ratio + GEX normalizado) → gates de
    riesgo sin discreción → **la mesa LLM debate** → CLI de Alpaca ejecuta. Coincide casi punto por
-   punto con la arquitectura que la propia Alpaca publica como buena práctica ([`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md)).
+   punto con la arquitectura que la propia Alpaca publica como buena práctica ([`REGLAS-HACKATHON.md`](../REGLAS-HACKATHON.md)).
 3. **0:50–1:50 — Metraje real** (el corazón del vídeo):
    - Un evento `debate` del journal: Quant, Bull, Bear, Desk Head, y la tesis falsable.
    - Una orden `mleg` de 4 patas colocada vía CLI.

@@ -72,7 +72,7 @@ Cualquiera vale. Lo que no vale es la posición actual, que es (a) en el upside 
 
 ## Prioridades
 
-Orden recomendado para el fin de semana. Detalle en [`AUDITORIA.md`](AUDITORIA.md) y en los issues.
+Orden recomendado para el fin de semana. Detalle en [`AUDITORIA.md`](../AUDITORIA.md) y en los issues.
 
 ### Sábado 29
 1. **Backtest-lite** (#5) — antes de tocar nada. Es el diagnóstico que valida o tumba todo lo demás.
