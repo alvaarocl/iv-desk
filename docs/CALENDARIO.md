@@ -67,8 +67,8 @@ Fuente: `agent/calendar.py`. El gate bloquea **abrir** posiciones **±2 h** alre
 | ISM Services PMI | **jue 3 sep** | 10:00 | 16:00 | **14:00–18:00** |
 | NFP / jobs report | vie 4 sep | 08:30 | 14:30 | 12:30–16:30 — fuera de la ventana de P&L |
 
-> ⚠️ **Fechas y horas sin verificar contra un calendario económico real** (el propio docstring de
-> `agent/calendar.py` lo pide). → issue #17
+> ✅ **Fechas y horas verificadas (2 sep)** contra la regla real de publicación de cada informe —
+> día de la semana calculado, no supuesto. Detalle en [`AUDITORIA.md`](AUDITORIA.md), issue #17/#18.
 
 **Consecuencia operativa que hay que tener presente:** el martes 1 y el jueves 3 el blackout se come
 **desde la apertura hasta las 18:00 CEST**. En esas dos sesiones la mesa no abre nada durante las

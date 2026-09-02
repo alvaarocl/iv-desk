@@ -130,6 +130,17 @@ export const RESULTS: {
     standDowns: number;
     predictionsCorrect: string;
     equityCurve: number[];
+    // One sentence, written by hand Thu night — the framing genuinely differs by outcome, so
+    // this is not auto-templated from the numbers above. Two honest drafts to start from:
+    //   0 trades:  "Three sessions in, dealer gamma stayed negative on SPY, QQQ and IWM almost
+    //               the entire window — the desk declined rich premium (VRP up to 1.6x) it
+    //               judged unsafe to sell. That is the strategy working, not a bot that never
+    //               fired."
+    //   >=1 trade: "The desk opened {trades} trade(s) and stood down {standDowns} times over
+    //               four sessions — every one of those refusals is in the journal with the
+    //               gate that caused it. Four sessions is a coin flip either way; the record of
+    //               why is not."
+    verdict: string;
   };
 } = {
   mode: 'backtest',
@@ -141,6 +152,7 @@ export const RESULTS: {
     standDowns: 0,
     predictionsCorrect: '0 / 0',
     equityCurve: [100000],
+    verdict: '[Thu 3 Sep: write the real one-line verdict here — see the two drafts above]',
   },
 };
 

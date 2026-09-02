@@ -115,9 +115,29 @@ Full copy-paste, all eight blocks in order, short breath between:
 ## Thursday 3 Sep — the live re-render
 
 1. `src/data.ts` → `RESULTS.mode = 'live'`, fill `RESULTS.live` from `data/journal.jsonl` and
-   `data/equity.csv`.
+   `data/equity.csv`. **Also write `RESULTS.live.verdict`** — one sentence, now rendered on
+   screen in S7 (it wasn't before; the live branch used to show only numbers). Two drafts are
+   in the comment right above `RESULTS` in `data.ts` — pick the one matching the real outcome
+   (0 trades vs ≥1) and adjust the specifics, don't paste it verbatim.
 2. Replace the **S7 block** above with the live version, e.g.:
    > "Over the four competition sessions the desk opened *N* trades and stood down *M* times, each
    > with a logged reason. It ended the window at *X* dollars. The prediction ledger: *k* of *n*
    > theses resolved correct. Four sessions is a coin flip — the record of the non-trades is not."
+   If it lands on zero trades: say that plainly and say why, in one sentence — "dealer gamma
+   stayed negative on all three names almost the entire window" is the honest reason as of
+   2 Sep, not a excuse invented after the fact. Check `data/journal.jsonl` for the real gex_norm
+   pattern across all four sessions before writing this — don't assume it stayed the same as
+   Wed.
 3. `npm run render`, re-cut the S7 audio only.
+
+### Also real, already in the repo: the shadow debate
+
+If GEX never clears, the debate never runs against a real opening (`debate.review_open` fires
+only when `sell_premium` is true — see `agent/desk.py:219`). Since 1 Sep the desk runs it anyway
+in **observation-only mode** whenever VRP is rich but GEX vetoes (`agent/desk.py:_maybe_shadow_debate`,
+merged #50) — a real transcript against real Featherless models and real market data, `shadow:
+true` in the journal, structurally incapable of opening a position. First one fired 2 Sep on
+SPY: 2/3 quant confirm, Bull and Bear genuinely disagree, Desk Head overrules the quant majority
+and vetoes. It's the source for `assets/gif-debate.gif` (see `assets/GIFS.md`) and worth a line
+in the S7 verdict if the competition window ends at zero trades — it is direct evidence the desk
+was never idle, whatever the equity curve says.

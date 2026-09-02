@@ -105,6 +105,24 @@ export const S7_Results: React.FC = () => {
           {l.trades} trades · {l.winRate}% wins · {l.standDowns} documented stand-downs ·{' '}
           {l.predictionsCorrect} predictions correct
         </div>
+        <div
+          style={{
+            fontFamily: SANS,
+            fontSize: 26,
+            color: C.ink,
+            marginTop: 40,
+            maxWidth: 940,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            opacity: interpolate(frame, [80, 100], [0, 1], {extrapolateRight: 'clamp'}),
+            transform: `translateY(${interpolate(frame, [80, 100], [12, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })}px)`,
+          }}
+        >
+          {l.verdict}
+        </div>
       </div>
     </SceneFrame>
   );
