@@ -37,17 +37,17 @@ Everything runs on Alpaca's **paper** environment. No real money.
 | `docs/CONCEPT.md` | **Start here.** Plain-language: what it does, why it wins, alternatives we considered |
 | `docs/DOSSIER.md` | The full build explained twice (layperson + technical) + how to field the hard questions. Read before presenting |
 | `docs/GLOSSARY.md` | Every technical term defined (options, IV, VRP, GEX, greeks, iron condor, MCP, CLI…) |
-| `docs/STATUS.md` | Current build state — what works, what's left, decisions locked vs open |
+| `docs/internal/STATUS.md` | Current build state — what works, what's left, decisions locked vs open |
 | `docs/AUDITORIA.md` | **Technical audit** — every known defect with file:line, by severity. Update it in the same PR that fixes the code |
 | `docs/REGLAS-HACKATHON.md` | Verified contest rules + judging criteria. Check before claiming anything in the write-up |
 | `docs/CALENDARIO.md` | **Every deadline in one place**, in CEST *and* ET. Check before reasoning about any time |
 | `docs/RUNBOOK.md` | **Live-session runbook** — startup checklist, what to watch each loop, kill switch, incident tree |
-| `docs/VIABILIDAD.md` | Viability judgement, positioning, and the priority order for the remaining work |
+| `docs/internal/VIABILIDAD.md` | Viability judgement, positioning, and the priority order for the remaining work |
 | `docs/API-ALPACA.md` | Alpaca API/CLI/feed conventions — **mleg limit_price is signed**. Read before touching order code |
 | `docs/strategy-spec.md` | The precise strategy: signal maths, strike selection, every risk gate, trade management |
-| `docs/game-plan.html` | The team-facing strategy + 7-day plan, designed to read at a glance |
+| `docs/internal/game-plan.html` | The team-facing strategy + 7-day plan, designed to read at a glance |
 | `docs/write-up.md` | The one-page submission write-up. **Written from the code, never from the plan** — anything not built by Thursday does not appear in it |
-| `PLAN.md` | Day-by-day task checklist with a cut-list |
+| `docs/internal/PLAN.md` | Day-by-day task checklist with a cut-list (working doc) |
 | `probes/` | Day-0 API de-risking scripts + `RESULTS.md` (findings that locked our design decisions) |
 | `agent/` | The trading engine (see below) |
 | `dashboard/` | Single static `index.html` on GitHub Pages, reads `data/` live — https://alvaarocl.github.io/iv-desk/ |
@@ -126,7 +126,7 @@ Settled by the Day-0 probes (`probes/RESULTS.md`) — **do not re-litigate witho
 
 **Social Engagement is a separate prize, not an axis of the rubric.** So P&L is worth **~25%, not
 ~20%** — which is why "we concede the P&L axis" is not a free move. See
-[`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md) and [`docs/VIABILIDAD.md`](docs/VIABILIDAD.md).
+[`docs/REGLAS-HACKATHON.md`](docs/REGLAS-HACKATHON.md) and [`docs/internal/VIABILIDAD.md`](docs/internal/VIABILIDAD.md).
 
 ### Official Alpaca rules that shape the work (received 29 Aug)
 
@@ -174,4 +174,4 @@ creativity, autonomy and robustness of the autonomous agent workflow. Winners ar
 priority order is: (1) a fresh account trading live and reliably from Mon 09:30 ET, (2) a workflow
 that is genuinely autonomous and robust (the LLM desk + risk gates + CLI execution), (3) the write-up
 and demo video, (4) social posts, (5) the dashboard only if everything else is done. See
-`docs/game-plan.html` and `docs/CONCEPT.md` for the reasoning.
+`docs/internal/game-plan.html` and `docs/CONCEPT.md` for the reasoning.

@@ -73,7 +73,7 @@ Mirar el **último bloque del journal** (`data/journal.jsonl`) y el último run 
 | `exits_only` | — | `early_assignment` → asignación temprana, ver abajo · `kill_switch` → alguien puso `DESK_MODE=exits_only` |
 
 `market_closed` fuera de horario es normal. Un `rejected` documentado **no es un fallo**: es el
-producto que estamos vendiendo ([`VIABILIDAD.md`](VIABILIDAD.md)). Un journal **vacío** sí lo es.
+producto que estamos vendiendo ([`VIABILIDAD.md`](internal/VIABILIDAD.md)). Un journal **vacío** sí lo es.
 
 ### Tres cosas nuevas del 31 ago que hay que saber leer
 

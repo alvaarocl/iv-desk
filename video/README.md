@@ -19,7 +19,7 @@ npm run render      # -> out/iv-desk-presentation.mp4  (1920x1080, ~2:52, no aud
 | `src/data.ts` | **Every number and string the video shows.** The only file to edit on Thu 3 Sep. |
 | `src/Root.tsx` | The composition — chains the seven scenes via `<Series>`. |
 | `src/scenes/S1..S7` | Hook · Signal · Desk · Discipline · Execution · Results · Close. |
-| `src/theme.ts` | Palette + fonts — matches `dashboard/index.html` and `docs/estado.html`. |
+| `src/theme.ts` | Palette + fonts — matches `dashboard/index.html` and `docs/internal/estado.html`. |
 | `NARRATION.md` | The English script for the TTS, with per-scene timestamps. |
 
 ## Data provenance (nothing is invented)

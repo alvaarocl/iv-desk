@@ -2,7 +2,7 @@
 
 Mensaje corto para explicarle a un mentor del hackathon qué presentamos y sacarle consejo.
 Abajo, en inglés (para enviar) y en español (para nosotros). El detalle completo está en
-[`DOSSIER.md`](DOSSIER.md).
+[`DOSSIER.md`](../DOSSIER.md).
 
 ---
 

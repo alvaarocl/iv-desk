@@ -31,7 +31,7 @@ desperdiciado entera.
 
 **Ojo para el martes:** con ~12 contratos, `max_net_delta` 0.30 pasa a ser el gate que manda por
 delante de `max_positions`. Respuesta pre-acordada si aparecen rechazos `portfolio delta band`:
-`max_net_delta` → 0.60 vía `data/params.json`. Detalle en [`RUNBOOK.md`](RUNBOOK.md).
+`max_net_delta` → 0.60 vía `data/params.json`. Detalle en [`RUNBOOK.md`](../RUNBOOK.md).
 Plan del fin de semana en [`PLAN-FINDE.md`](PLAN-FINDE.md).
 
 ---
@@ -43,7 +43,7 @@ por el CLI. Además de eso, ya hecho este finde:
 
 - **Calibrado con backtest real** (60 sesiones Alpaca): `vrp_ratio_min 1.05`, `gex_min 0.03`.
   11 trades / 174 sesiones, +$484 held-to-expiry. Es **rama B** — la señal dispara poco. Detalle
-  en [`../backtest/RESULTS.md`](../backtest/RESULTS.md).
+  en [`../../backtest/RESULTS.md`](../../backtest/RESULTS.md).
 - **Mesa LLM probada en vivo contra Featherless** — transcript real, dentro del budget, coste
   trivial. Modelos verificados y puestos en las variables de GitHub.
 - **CI verificado**: `workflow_dispatch` en `dry_run` contra UC3M pasa (instala CLI v0.0.14,
@@ -60,8 +60,8 @@ cosas, el go-live del lunes, y la entrega del viernes.
 
 ## Reglas oficiales (guidelines de Alpaca, recibidas 29 ago)
 
-Datos del concurso verificados en [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md). Todas las fechas con
-hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
+Datos del concurso verificados en [`REGLAS-HACKATHON.md`](../REGLAS-HACKATHON.md). Todas las fechas con
+hora CEST y ET en [`CALENDARIO.md`](../CALENDARIO.md).
 
 - **Criterios de jurado: CUATRO** — P&L Performance · Technology Implementation · Creativity &
   Originality · Presentation & Execution (~25% cada uno). **Social Engagement es un premio aparte**,
@@ -72,7 +72,7 @@ hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
 - **Ventana de scoring de P&L (✅ confirmada en Discord, 29 ago):** lun **31 ago 09:30 ET → vie 4 sep
   09:30 ET**, con el **snapshot de equity al cierre del jueves 3 sep**. Cuentan 4 sesiones (31, 1, 2,
   3). Las posiciones que expiran el **viernes 4 quedan excluidas** de la medición → operaciones de
-  competición con expiración ≤ 3 sep. Ver la cita literal en [`REGLAS-HACKATHON.md`](REGLAS-HACKATHON.md).
+  competición con expiración ≤ 3 sep. Ver la cita literal en [`REGLAS-HACKATHON.md`](../REGLAS-HACKATHON.md).
 - Se juzga por **equity total de la cuenta** (no caja) + creatividad, autonomía y robustez del workflow.
   No hay Sharpe/Sortino/drawdown como métrica, solo equity. Sin scoreboard en vivo.
 - **La UI NO es obligatoria.** *"We are primarily evaluating the autonomous agent workflow and its
@@ -98,10 +98,10 @@ hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
 | `agent/seats.py` / `agent/debate.py` | **La mesa, 100% Featherless** (#31): Quant ensemble ×3 con mayoría estricta, Bull/Bear obligados a citar campos reales, Desk Head con predicción falsable validada. Clamp al cap del Risk Officer. Kill switch `DESK_DEBATE=off`. ✅ **cableada en `desk.py`**. |
 | `agent/desk.py` | Loop completo: guardarraíl de cuenta → reconcile → salidas → gates de cartera → señal → debate → apertura → journal. ✅ end-to-end en `dry_run`. |
 | `agent/journal.py` | Journal append-only + curva de equity + hook de grading de predicciones. ✅ |
-| `backtest/replay.py` | Harness de replay. ✅ **corrido con datos reales** → `../backtest/RESULTS.md`. |
+| `backtest/replay.py` | Harness de replay. ✅ **corrido con datos reales** → `../../backtest/RESULTS.md`. |
 | Tests | **116 tests**, `ruff` limpio. La mesa se testea con dobles inyectados: sin red y sin claves. Harness de replay del exit manager incluido. ✅ |
 | `.github/workflows/desk.yml` | Cron cada 15 min en horario de mercado + `workflow_dispatch`; instala y **verifica la versión** del CLI (pin `0.0.14`). ✅ |
-| Probes Día 0 | Los 3 pasaron. `../probes/RESULTS.md`. ✅ |
+| Probes Día 0 | Los 3 pasaron. `../../probes/RESULTS.md`. ✅ |
 | `docs/write-up.md` | Reescrito desde el código (#34/#18): sin Anthropic, sin MCP, cada afirmación con su fichero. 🔶 solo faltan los números del jueves. |
 | `docs/RUNBOOK.md`, `docs/CALENDARIO.md` | ✅ hechos. **Leer el runbook los dos antes del lunes.** |
 | `video/` | Proyecto Remotion (8 escenas, 60 fps, 3:12) + `NARRATION.md`. Vídeo final con voz: `video/out/IVDESK-UC3M.mp4`. ✅ v1 |
@@ -115,7 +115,7 @@ hora CEST y ET en [`CALENDARIO.md`](CALENDARIO.md).
 
 | Tarea | Quién | Estado |
 |---|---|---|
-| Calibrar con datos reales (`vrp_ratio_min`, `gex_min`, …) con evidencia | Álvaro (hecho por Ángel) | ✅ `../backtest/RESULTS.md` |
+| Calibrar con datos reales (`vrp_ratio_min`, `gex_min`, …) con evidencia | Álvaro (hecho por Ángel) | ✅ `../../backtest/RESULTS.md` |
 | Probar la mesa Featherless end-to-end con claves reales | Álvaro | ✅ transcript real, dentro del budget |
 | Secrets + variables en GitHub (UC3M, Featherless, modelos, `DESK_MODE=dry_run`) | Álvaro | ✅ |
 | `workflow_dispatch` en `dry_run` contra UC3M | Álvaro | ✅ pasa |
@@ -159,8 +159,8 @@ estos son internos y no se entregan, pero conviene cerrarlos antes de hacer el r
 
 | Fichero | Qué arrastra |
 |---|---|
-| `docs/game-plan.html` | Tabla de **cinco** criterios al ~20% con "Social Engagement" como eje. Son **cuatro al ~25%** |
-| `docs/estado.html` | Sección de MCP como pendiente y referencias a "Anthropic" en la mesa |
+| `docs/internal/game-plan.html` | Tabla de **cinco** criterios al ~20% con "Social Engagement" como eje. Son **cuatro al ~25%** |
+| `docs/internal/estado.html` | Sección de MCP como pendiente y referencias a "Anthropic" en la mesa |
 | `.env.example` | `ANTHROPIC_API_KEY` (B5) |
 | `pyproject.toml` | Dependencia `anthropic` (#15, la quita Ángel con #31) |
 | `CLAUDE.md`, `PLAN.md`, `CONTRIBUTING.md` | Tabla de módulos desactualizada (`broker.py` "REST", mesa "no cableada"), `ANTHROPIC_API_KEY` en la lista de claves |
@@ -174,7 +174,7 @@ vieja que queda es la de `game-plan.html`.
 
 ## Decisiones cerradas
 
-No revisar sin motivo. Fijadas por los probes de Día 0 (`../probes/RESULTS.md`) y por las decisiones
+No revisar sin motivo. Fijadas por los probes de Día 0 (`../../probes/RESULTS.md`) y por las decisiones
 del finde (`PLAN-FINDE.md`).
 
 - **Estructura:** iron condor como una sola orden `mleg` de 4 patas. Confirmado en paper.
