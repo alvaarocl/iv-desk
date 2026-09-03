@@ -113,6 +113,38 @@ A desk that stands down before an ISM print with a documented reason is a better
 autonomy than one that got three condors right. The journal lets a judge check that instead of
 believing it.
 
+## Standing down, not rationalizing: two real vetoes from this week
+
+The calibration behind these gates is measured, not assumed: a 60-session replay against real
+Alpaca chain data (`backtest/RESULTS.md`) put 174 underlying-sessions through the same funnel the
+live desk runs — the VRP gate alone kills 121 of them (174 → 48), dealer gamma kills most of what's
+left (48 → 16), the trend and structure/credit gates narrow it further, and the whole funnel
+converges on **11 trades opened, +$484 held-to-expiry**. That is the evidence the risk gates do
+something, not a claim about them.
+
+Two live examples from the actual competition window, not the backtest:
+
+- **A signal-rich, mesa-vetoed candidate (2 Sep, `data/journal.jsonl`).** SPY cleared VRP
+  (ratio 1.61, well above the 1.05 floor) and, on the deterministic layer alone, would have gone
+  to the Quant ensemble — but GEX read −0.106 (dealers short gamma), so `signal.py` stood it down
+  before the mesa was even due to see it. The debate ran anyway, in an **observation-only shadow
+  mode** added mid-week specifically so a GEX veto doesn't also mean a silent LLM layer
+  (`agent/desk.py` → `_maybe_shadow_debate`): 2 of 3 Quant models confirmed the structure, Bull and
+  Bear argued genuinely opposite cases (similarity score 0.082 — not two copies of the same
+  answer), and the **Desk Head overruled its own Quant majority**: *"The GEX signal must be strong
+  enough to overcome the high ATM IV and choppy regime for this trade to win."* Full transcript in
+  the journal, `shadow: true`.
+- **A signal-clear, structurally-blocked candidate (3 Sep).** On the last scored session SPY
+  cleared *every* signal gate — VRP ratio 1.74, GEX +0.58 (dealers long gamma, the regime the
+  strategy is built to sell into) — sized to 7 contracts by the Risk Officer, and was still
+  rejected before it reached the desk: credit/width came back at 0.10 against the 0.20 floor
+  (`agent/config.py` → `min_credit_frac`). A 0-DTE condor simply doesn't carry as much credit per
+  unit of width as the 1–3 DTE structures that floor was calibrated on, and the gate caught it.
+
+Neither of those is the strategy failing to fire. It is three independent, code-enforced opinions
+— the deterministic gate, the LLM mesa, and the credit floor — agreeing that a rich-looking signal
+still wasn't a trade worth the risk, each for a different, logged reason.
+
 ## Alpaca stack usage
 
 - **Trading API through the official CLI.** Every trading call in the production loop shells out to
@@ -133,10 +165,13 @@ believing it.
 
 ## Engineering
 
-116 tests, no network and no API keys required: the four-seat debate runs end-to-end against
+177 tests, no network and no API keys required: the four-seat debate runs end-to-end against
 injected transport doubles (`tests/test_debate.py`), strike selection and the exit manager against
-synthetic chains (`tests/test_execution.py`), and the gates and account guard directly
-(`tests/test_risk_and_guard.py`). Every tunable is one dataclass with the reasoning for each number
+synthetic chains (`tests/test_execution.py`), the gates and account guard directly
+(`tests/test_risk_and_guard.py`), and — added mid-week when Alpaca's feed turned out not to publish
+greeks for same-day options — a Black-Scholes implied-vol solver with 23 tests of its own
+(`tests/test_blackscholes.py`), including the numerical case (near-zero vega) that made an early
+version of it silently wrong. Every tunable is one dataclass with the reasoning for each number
 written beside it (`agent/config.py`).
 
 ## Results — [Results: fill Thu 3 Sep after the close]

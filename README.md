@@ -110,7 +110,7 @@ small `limit` silently hands you the oldest window instead of the newest.
 uv sync
 cp .env.example .env          # Alpaca paper keys + Featherless key and 3 model ids
 uv run python -m agent.desk   # one loop; dry_run by default — logs everything, orders nothing
-uv run pytest -q              # 116 tests, no network required
+uv run pytest -q              # 177 tests, no network required
 ```
 
 The production loop runs on a 15-minute GitHub Actions cron during market hours and commits its
@@ -128,6 +128,12 @@ docs/         strategy spec, write-up, glossary, runbook, API notes, self-audit
 docs/internal/ working docs — plans, status, presentation notes. Not deliverables.
 data/         journal.jsonl, equity.csv — the audit trail, committed by the bot
 ```
+
+The dashboard is a single static page reading `data/` live — deliberately not the focus. The rules
+don't require a UI ("primarily evaluating the autonomous agent workflow"), and the public journal
+already carries the receipts a dashboard would summarize. Given more time, the next build is a
+richer one: per-underlying signal history, the debate transcripts searchable, the prediction ledger
+graded live against the tape as positions close.
 
 ## Pre-event work disclosure
 

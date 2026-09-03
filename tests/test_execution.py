@@ -8,9 +8,15 @@ from agent import execution as ex
 
 # ---------- issue #2: exit-manager units ----------
 
-def _mk_trade(entry_credit_ps: float, width_ps: float = 4.0, contracts: int = 1) -> ex.Trade:
+def _mk_trade(entry_credit_ps: float, width_ps: float = 4.0, contracts: int = 1,
+              expiration: str = "2026-09-10") -> ex.Trade:
+    # `expiration` deliberately outside the 31 Aug - 4 Sep competition window: `manage_exits`
+    # reads the real wall clock (agent/execution.py:395) and force-closes on expiry day
+    # regardless of P&L thresholds, so a trade dated "today" during the live event would make
+    # these threshold tests fail on exactly the days the desk is actually trading — as
+    # "2026-09-03" did the moment 3 Sep arrived for real.
     return ex.Trade(
-        id="t1", underlying="SPY", structure="iron_condor", expiration="2026-09-03",
+        id="t1", underlying="SPY", structure="iron_condor", expiration=expiration,
         legs=[
             {"symbol": "SPY260903P00769000", "side": "sell", "ratio_qty": "1",
              "position_intent": "sell_to_open"},
