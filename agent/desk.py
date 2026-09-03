@@ -215,7 +215,7 @@ def run_once() -> None:
 
 def _consider(u: str, params: Params, pf, mult: float, mode: str,
               now: datetime, stamp: str) -> None:
-    data = sg.fetch(u, params)
+    data = sg.fetch(u, params, now)
     s = sg.build_signal(u, data, params)
     rec = {k: v for k, v in s.__dict__.items() if k != "chain"}
     append({"ts": stamp, "event": "signal", **rec})
