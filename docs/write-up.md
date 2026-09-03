@@ -165,7 +165,7 @@ still wasn't a trade worth the risk, each for a different, logged reason.
 
 ## Engineering
 
-177 tests, no network and no API keys required: the four-seat debate runs end-to-end against
+181 tests, no network and no API keys required: the four-seat debate runs end-to-end against
 injected transport doubles (`tests/test_debate.py`), strike selection and the exit manager against
 synthetic chains (`tests/test_execution.py`), the gates and account guard directly
 (`tests/test_risk_and_guard.py`), and — added mid-week when Alpaca's feed turned out not to publish
@@ -174,13 +174,45 @@ greeks for same-day options — a Black-Scholes implied-vol solver with 23 tests
 version of it silently wrong. Every tunable is one dataclass with the reasoning for each number
 written beside it (`agent/config.py`).
 
-## Results — [Results: fill Thu 3 Sep after the close]
+The suite still missed one thing: `execution._close_legs` — which inverts a trade's legs to close
+it — had zero coverage, and a real bug in it (`side` flipped, `position_intent`'s prefix didn't)
+went undetected all week because nothing had actually needed to close a position yet. The one real
+trade below hit it live, 13 times. Fixed and pinned with 4 new tests the same day
+(`docs/AUDITORIA.md`, issue #26) — left in, not quietly reverted, because a desk that documents its
+own bugs the same way it documents its stand-downs is the point of this whole project.
+
+## Results
 
 Window: Mon 31 Aug 09:30 ET → equity snapshot at Thu 3 Sep close. Four sessions.
 
-- Trades closed [N] · win rate [X]% · ending equity $[X] · return [X]% · max drawdown [X]%.
-- Documented stand-downs: [N], by gate (`vrp` / `gex` / `trend` / risk / desk veto).
-- Predictions made [N] · resolved correct [N] · circuit-breaker triggers [N].
-- Incidents resolved live: [N] — logged in `docs/RUNBOOK.md`.
+- **1 trade, 1 win.** QQQ iron condor, 8 contracts, opened Thu 3 Sep 11:58 ET after clearing every
+  gate (VRP ratio 1.74, dealer gamma +0.58) and passing the real four-seat debate (not shadow —
+  the mesa's only live approval of the week). Strikes 713/715P–720/722C, $352 credit, $1,248
+  max loss. QQQ closed the session inside the short strikes; the condor expired worthless *for
+  us to keep*, the full outcome the structure was built for.
+- **Ending equity $100,318.85 · +$318.85 · +0.32%.** Four sessions is a variance lottery either
+  way — the number that matters more is that the one trade the desk took, it took for a reason it
+  wrote down first, and that reason held.
+- **360 signal evaluations across the week, 65 cleared every deterministic gate, 1 became this
+  trade.** Of the other 64: 1 (Monday's SPY) reached the real debate and got no answer — a bad
+  Featherless secret, fixed that night — and 63 were caught downstream by the credit floor, the
+  liquidity gate, or the portfolio delta band. Every one of the 64 is a logged `rejected`,
+  `no_structure` or `debate` record with a reason, not a silent skip.
+- **Documented stand-downs: 295** — `gex` 232, `data` 54 (mostly same-day options Alpaca's feed
+  doesn't publish greeks for, backfilled live via Black-Scholes from 3 Sep on — see Engineering),
+  `vrp` 9.
+- **4 debates, 1 approval.** Monday's real attempt failed on a bad Featherless secret
+  (`quant_no_consensus`, fixed same night). Tuesday added *shadow* debates — observation-only runs
+  against real GEX-vetoed candidates so the mesa gets exercised even on a day the risk gates never
+  let a real opening through — and used them twice, both correctly vetoed by the Desk Head
+  overruling its own Quant majority. Thursday's real debate approved the trade above.
+- **1 falsifiable prediction**, from the Desk Head that approved the trade: QQQ closes in
+  [705, 730] on 2026-09-03. Correct — QQQ never left that band.
+- **1 real incident, caught and fixed the same day it happened:** the exit manager tried to close
+  the QQQ position 13 times (13:28–15:13 ET) and failed every time on a `position_intent`
+  mismatch it had zero test coverage for. Equity still closed positive — QQQ expired inside the
+  strikes and OCC settled it automatically — but the bug was real. Root-caused, fixed, and pinned
+  with 4 regression tests the same afternoon (`docs/AUDITORIA.md`, issue #26).
 
-**Repo:** [URL] · **Demo video:** [URL] · **Account:** PA39HSCQE8S3
+**Repo:** github.com/alvaarocl/iv-desk · **Demo video:** `video/out/IVDESK-UC3M.mp4` ·
+**Account:** PA39HSCQE8S3

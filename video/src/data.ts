@@ -143,16 +143,25 @@ export const RESULTS: {
     verdict: string;
   };
 } = {
-  mode: 'backtest',
+  mode: 'live',
   backtest: {pnl: 484, trades: 11, sessions: 60, ivrv_median: 0.9},
   live: {
-    pnl: 0,
-    trades: 0,
-    winRate: 0,
-    standDowns: 0,
-    predictionsCorrect: '0 / 0',
-    equityCurve: [100000],
-    verdict: '[Thu 3 Sep: write the real one-line verdict here — see the two drafts above]',
+    pnl: 318.85,
+    trades: 1,
+    winRate: 100,
+    standDowns: 295,
+    predictionsCorrect: '1 / 1',
+    // Sampled from data/equity.csv (31 points): flat through three sessions of stand-downs,
+    // then the one QQQ trade opens Thu afternoon and rides to the close.
+    equityCurve: [
+      100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000,
+      100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000,
+      100047.2, 100111.2, 100111.2, 100191.2, 100159.2, 100247.2, 100303.2, 100319.2, 100318.85,
+    ],
+    verdict:
+      'The desk opened one trade in four sessions — a QQQ iron condor, cleared by every gate ' +
+      'and a live debate — and it closed inside every strike, the exact outcome the structure ' +
+      'was built for. 295 other times, it looked and said no, with a reason.',
   },
 };
 

@@ -57,11 +57,12 @@ Timestamps are where each scene *starts*.
 > manager: fifty percent of the credit, two times the credit, or close on expiry day. A
 > fifteen-minute cron, reconciling against Alpaca every tick.
 
-### 2:38 — S7 · Results  (46 words · ~18 s)
+### 2:38 — S7 · Results  (48 words · ~19 s)
 
-> Held to expiry, the calibrated strategy made four hundred and eighty-four dollars over eleven
-> backtested trades. That's not a forecast — four sessions of live P&L is a coin flip. What isn't a
-> coin flip is an agent that documents every trade it didn't take.
+> Over four sessions, the desk opened one trade: a QQQ iron condor, cleared by every gate and a
+> live debate. It closed inside every strike. Two hundred ninety-five other times, it looked and
+> said no — logged, with a reason. Ending equity: one hundred thousand, three hundred nineteen
+> dollars.
 
 ### 3:01 — S8 · Close  (16 words · ~6 s)
 
@@ -69,7 +70,7 @@ Timestamps are where each scene *starts*.
 
 ---
 
-## Total: ~438 words, ≈ 2:55 spoken
+## Total: ~440 words, ≈ 2:56 spoken
 
 Full copy-paste, all eight blocks in order, short breath between:
 
@@ -104,31 +105,26 @@ Full copy-paste, all eight blocks in order, short breath between:
 > manager: fifty percent of the credit, two times the credit, or close on expiry day. A
 > fifteen-minute cron, reconciling against Alpaca every tick.
 >
-> Held to expiry, the calibrated strategy made four hundred and eighty-four dollars over eleven
-> backtested trades. That's not a forecast — four sessions of live P&L is a coin flip. What isn't a
-> coin flip is an agent that documents every trade it didn't take.
+> Over four sessions, the desk opened one trade: a QQQ iron condor, cleared by every gate and a
+> live debate. It closed inside every strike. Two hundred ninety-five other times, it looked and
+> said no — logged, with a reason. Ending equity: one hundred thousand, three hundred nineteen
+> dollars.
 >
 > The journal is in the repo. Go check us against it.
 
 ---
 
-## Thursday 3 Sep — the live re-render
+## Thursday 3 Sep — done (kept for the record, not a to-do anymore)
 
-1. `src/data.ts` → `RESULTS.mode = 'live'`, fill `RESULTS.live` from `data/journal.jsonl` and
-   `data/equity.csv`. **Also write `RESULTS.live.verdict`** — one sentence, now rendered on
-   screen in S7 (it wasn't before; the live branch used to show only numbers). Two drafts are
-   in the comment right above `RESULTS` in `data.ts` — pick the one matching the real outcome
-   (0 trades vs ≥1) and adjust the specifics, don't paste it verbatim.
-2. Replace the **S7 block** above with the live version, e.g.:
-   > "Over the four competition sessions the desk opened *N* trades and stood down *M* times, each
-   > with a logged reason. It ended the window at *X* dollars. The prediction ledger: *k* of *n*
-   > theses resolved correct. Four sessions is a coin flip — the record of the non-trades is not."
-   If it lands on zero trades: say that plainly and say why, in one sentence — "dealer gamma
-   stayed negative on all three names almost the entire window" is the honest reason as of
-   2 Sep, not a excuse invented after the fact. Check `data/journal.jsonl` for the real gex_norm
-   pattern across all four sessions before writing this — don't assume it stayed the same as
-   Wed.
-3. `npm run render`, re-cut the S7 audio only.
+`RESULTS.mode = 'live'` and `RESULTS.live` are filled in `src/data.ts`. The actual outcome:
+**1 trade, 1 win.** QQQ iron condor, 8 contracts, cleared every gate and a real (non-shadow)
+debate, closed inside the strikes. Ending equity $100,318.85 (+$318.85). 295 documented
+stand-downs across the week. The S7 block above already carries this — nothing left to swap in.
+
+Next step is yours: generate the new S7 audio in ElevenLabs (same voice/settings as the existing
+track — see the filename in `video/out/`: Arabella, PVC, `sp100`, `s63`, `sb49`, `v3`), splice or
+regenerate, remux with `video/out/iv-desk-presentation.mp4` (re-rendered silent, S1-S6/S8 audio
+unchanged from the original track), export to `video/out/IVDESK-UC3M.mp4`.
 
 ### Also real, already in the repo: the shadow debate
 
@@ -138,6 +134,7 @@ in **observation-only mode** whenever VRP is rich but GEX vetoes (`agent/desk.py
 merged #50) — a real transcript against real Featherless models and real market data, `shadow:
 true` in the journal, structurally incapable of opening a position. First one fired 2 Sep on
 SPY: 2/3 quant confirm, Bull and Bear genuinely disagree, Desk Head overrules the quant majority
-and vetoes. It's the source for `assets/gif-debate.gif` (see `assets/GIFS.md`) and worth a line
-in the S7 verdict if the competition window ends at zero trades — it is direct evidence the desk
-was never idle, whatever the equity curve says.
+and vetoes. It's the source for `assets/gif-debate.gif` (see `assets/GIFS.md`). The window ended
+with a real trade, so S7 didn't need this as its fallback story — but it's still evidence the desk
+runs the mesa on more than the one signal that happened to clear every gate, and it's fair game
+for S3 or a GIF callout if there's room.
