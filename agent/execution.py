@@ -212,12 +212,23 @@ def _client_order_id(underlying: str, expiration: str, structure: str, now: date
 
 
 def _close_legs(legs: list[dict]) -> list[dict]:
-    return [
-        {**leg,
-         "side": "buy" if leg["side"] == "sell" else "sell",
-         "position_intent": leg["position_intent"].replace("_open", "_close")}
-        for leg in legs
-    ]
+    """Invert every leg to close it: a short (`sell`) is bought back, a long (`buy`) is sold.
+
+    `position_intent`'s buy/sell prefix must always agree with the (now-flipped) `side` — Alpaca
+    validates the pair together. The old version flipped `side` but only swapped `_open` ->
+    `_close` in `position_intent`, leaving its buy/sell prefix pointing at the *original* side:
+    a short leg (side="sell", position_intent="sell_to_open") became side="buy" but
+    position_intent="sell_to_close" — mismatched, rejected as "invalid position_intent" on
+    every leg. Confirmed live 3 Sep: 13 failed exit attempts on the week's one real trade,
+    13:28-15:13 ET, all this exact error. The position still closed out fine — QQQ expired
+    inside the strikes and OCC settled it automatically at 4pm — but the code never managed it.
+    No test caught this because none existed; see test_execution.py.
+    """
+    out = []
+    for leg in legs:
+        closing_side = "buy" if leg["side"] == "sell" else "sell"
+        out.append({**leg, "side": closing_side, "position_intent": f"{closing_side}_to_close"})
+    return out
 
 
 def _await_fill(order_id: str) -> dict | None:

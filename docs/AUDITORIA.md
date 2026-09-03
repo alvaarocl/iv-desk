@@ -348,6 +348,24 @@ calculado, no supuesto):
 
 Las 5 encajan exactamente con su regla de calendario real. Sin discrepancias.
 
+### 26. `_close_legs` mandaba `side` y `position_intent` desincronizados ✅ RESUELTO (3 sep)
+`agent/execution.py:214` · confirmado con el único trade real de la semana
+
+El único trade real de toda la competición (QQQ iron condor, jueves 3 sep) **nunca se cerró por
+código** — 13 intentos entre las 13:28 y las 15:13 ET, los 13 rechazados por Alpaca como
+`"invalid position_intent"` en las 4 patas. La cuenta terminó en positivo igualmente (QQQ expiró
+dentro de las strikes, la OCC liquidó la posición sola a las 16:00 ET), pero el mecanismo de
+cierre estaba roto.
+
+Causa: `_close_legs` invertía `side` (`sell`→`buy`, `buy`→`sell`) correctamente, pero en
+`position_intent` solo sustituía `_open` por `_close`, dejando el prefijo `buy_`/`sell_`
+apuntando al lado **original**. Una pata corta (`side: sell`, `position_intent: sell_to_open`)
+salía como `side: buy` + `position_intent: sell_to_close` — combinación que Alpaca rechaza porque
+el prefijo tiene que coincidir con el `side` ya invertido. **Cero tests cubrían esta función**;
+no se detectó hasta que hubo un trade real que cerrar. Arreglado derivando `position_intent`
+directamente del lado ya invertido, con 4 tests nuevos (`tests/test_execution.py`) que fijan la
+invariante exacta que Alpaca exige.
+
 ---
 
 ## Deliverables con problemas

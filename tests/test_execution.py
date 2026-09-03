@@ -162,3 +162,44 @@ def test_reconcile_flags_unexpected_equity(monkeypatch):
     events = ex.reconcile(mode="dry_run")
     assert any(e.get("alert") == "unexpected_equity_position" for e in events)
     assert ex.has_unexpected_equity() is True
+
+
+# ---------- 3 Sep incident: _close_legs sent a mismatched side/position_intent ----------
+#
+# Confirmed live: the week's one real trade (QQQ iron condor) failed to close 13 times,
+# 13:28-15:13 ET, every attempt rejected by Alpaca as "invalid position_intent" on all 4 legs.
+# `side` was flipped correctly but `position_intent` only swapped `_open` -> `_close`, so a short
+# leg (side="sell", position_intent="sell_to_open") closed as side="buy" but
+# position_intent="sell_to_close" — the prefix never followed the flip.
+
+def test_close_legs_flips_a_short_to_a_matching_buy_to_close():
+    legs = [{"symbol": "QQQ260903P00715000", "side": "sell", "ratio_qty": "1",
+            "position_intent": "sell_to_open"}]
+    closed = ex._close_legs(legs)
+    assert closed[0]["side"] == "buy"
+    assert closed[0]["position_intent"] == "buy_to_close"
+
+
+def test_close_legs_flips_a_long_to_a_matching_sell_to_close():
+    legs = [{"symbol": "QQQ260903P00713000", "side": "buy", "ratio_qty": "1",
+            "position_intent": "buy_to_open"}]
+    closed = ex._close_legs(legs)
+    assert closed[0]["side"] == "sell"
+    assert closed[0]["position_intent"] == "sell_to_close"
+
+
+def test_close_legs_side_and_position_intent_prefix_always_agree():
+    """The actual invariant Alpaca enforces: whatever `side` says, `position_intent` must start
+    with the same word. A regression here reintroduces the 3 Sep incident."""
+    legs = _mk_trade(1.20).legs
+    for leg in ex._close_legs(legs):
+        assert leg["position_intent"].startswith(leg["side"] + "_")
+        assert leg["position_intent"].endswith("_close")
+
+
+def test_close_legs_preserves_symbols_and_flips_every_side():
+    original = _mk_trade(1.20).legs
+    closed = ex._close_legs(original)
+    assert [leg["symbol"] for leg in closed] == [leg["symbol"] for leg in original]
+    for before, after in zip(original, closed):
+        assert after["side"] != before["side"]
