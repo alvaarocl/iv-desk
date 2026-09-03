@@ -12,8 +12,9 @@ Complementa —no sustituye— a [`CONCEPT.md`](CONCEPT.md) (posicionamiento), [
 (el one-pager de la submission) y [`strategy-spec.md`](strategy-spec.md) (la estrategia exacta).
 Glosario completo en [`GLOSSARY.md`](GLOSSARY.md).
 
-Estado a 30 ago: motor + capa LLM construidos, cableados y en `main`; 116 tests; calibrado con 60
-sesiones reales; go-live lunes 31 ago 09:30 ET.
+Estado a 3 sep, cierre de la ventana puntuable: motor + capa LLM construidos, cableados y en
+`main`; 181 tests; calibrado con 60 sesiones reales; **1 trade real abierto y cerrado en la
+semana** (QQQ iron condor, ganador, +$318,85), 295 stand-downs documentados en 4 sesiones.
 
 ---
 
@@ -139,7 +140,7 @@ determinista.
 
 ## 6. Qué entregamos el viernes
 
-- **El repositorio público** con todo el código y los 116 tests.
+- **El repositorio público** con todo el código y los 181 tests.
 - **El registro `data/journal.jsonl`**: la prueba falsable de todo lo que hizo la mesa — incluidas
   las veces que **decidió no operar**, con el motivo y los números.
 - **El one-pager** (`write-up.md`) y un **vídeo** de ~3 minutos con narración.
@@ -420,10 +421,12 @@ la decisión determinista; **no** desactiva salidas ni gates de riesgo. Es el mo
 - **Journal** (`agent/journal.py`): `data/journal.jsonl` append-only + `data/equity.csv`. Eventos:
   `account`, `portfolio`, `signal` (uno por subyacente, con el `stand_down` completo), `rejected`,
   `debate` (transcript completo), `opened`, `exit`, `reconcile`, `exits_only`, `error`, `fatal`.
-- **Tests**: 116, sin red y sin claves. La mesa se prueba con dobles inyectados. `ruff` limpio.
-  Cobertura fuerte en `test_debate.py` (contrato de seguridad de la capa LLM) y
-  `test_exit_manager_replay.py` (harness de replay). **Hueco conocido**: `desk.run_once()` no tiene
-  test end-to-end; el orden de etapas y el aislamiento de excepciones van sin cobertura.
+- **Tests**: 181, sin red y sin claves. La mesa se prueba con dobles inyectados. `ruff` limpio.
+  Cobertura fuerte en `test_debate.py` (contrato de seguridad de la capa LLM),
+  `test_exit_manager_replay.py` (harness de replay), `test_blackscholes.py` (backfill de IV/griegas
+  para 0DTE) y 4 regresiones sobre `_close_legs` (issue #26, ver más abajo). **Hueco conocido**:
+  `desk.run_once()` no tiene test end-to-end; el orden de etapas y el aislamiento de excepciones
+  van sin cobertura.
 - **Cuentas**: testing `PA3TQHQKM5AD` (todo el dev), competición `PA39HSCQE8S3` ($100k, nivel 3,
   intacta; primera orden lun 31 ago 09:30 ET; sus keys solo en secrets de GitHub).
 
@@ -470,9 +473,11 @@ hacia inflexiones reales, no hacia el P&L máximo):
 | **TODOS LOS GATES OFF** | 78 | +401 | el edge bruto es positivo pero **delgado** |
 
 **No existe una palanca honesta que compre más trades sin empeorar la expectativa.** Es un proyecto
-de **rama B**: "una mesa que sabe cuándo NO operar". El 94% de las sesiones son stand-down
-documentado. En la ventana real (lun 31 – jue 3) esperamos **0–4 trades**, equity del jueves en
-±$400 de los $100k.
+de **rama B**: "una mesa que sabe cuándo NO operar". El 94% de las sesiones del backtest son
+stand-down documentado — **y la ventana real lo confirmó**: 295 stand-downs documentados en 4
+sesiones (lun 31 – jue 3), **1 solo trade** (QQQ iron condor, aprobado por la mesa real, no en
+sombra), cerrado dentro de las strikes. Equity final **$100.318,85 (+$318,85)**. Detalle en
+[`../docs/write-up.md`](write-up.md) y `data/journal.jsonl`.
 
 ## 8. Límites conocidos (asumidos con los ojos abiertos)
 
@@ -481,11 +486,18 @@ documentado. En la ventana real (lun 31 – jue 3) esperamos **0–4 trades**, e
 - **El GEX que calculamos** — open interest T-2, sin inferir el posicionamiento real de dealers —
   es un proxy tosco. Como narrativa diferenciadora es excelente; como edge medible en 4 días, es
   marginal.
-- **`desk.run_once()` no tiene test end-to-end.** El loop que corre el lunes nunca se ha probado
-  entero en un mercado abierto. Mitigación: un `workflow_dispatch` en `dry_run` el lunes 15:30–16:00
-  CEST antes de poner `live`.
-- **El exit manager nunca ha cerrado una posición real.** Testeado con dobles y con el broker
-  monkeypatcheado; la rama `live` no ha tocado Alpaca.
+- **`desk.run_once()` sigue sin test end-to-end.** El orden de etapas y el aislamiento de
+  excepciones corrieron 4 sesiones reales sin caerse, pero no hay un test que lo fije.
+- **El exit manager sí cerró una posición real — y el primer intento falló.** El trade del jueves
+  (QQQ iron condor) disparó 13 intentos de cierre rechazados, 13:28–15:13 ET, todos por el mismo
+  error: `_close_legs` invertía `side` pero no el prefijo de `position_intent`, así que una pata
+  corta (`side=sell`, `position_intent=sell_to_open`) intentaba cerrar como `side=buy` pero
+  `position_intent=sell_to_close` — Alpaca lo rechaza siempre. La posición se cerró igualmente,
+  sola: expiró dentro de las strikes y OCC la liquidó a las 16:00, el código nunca llegó a
+  gestionarla. Diagnosticado el mismo día desde el log de errores real, arreglado y con 4 tests
+  de regresión antes de la siguiente sesión de mercado — issue #26 en
+  [`AUDITORIA.md`](AUDITORIA.md). Ningún test lo había atrapado antes porque no existía ninguno
+  sobre `_close_legs`.
 - **El debate alcista/bajista no es original por sí solo** — `ai-hedge-fund` ya lo hace. El
   presupuesto de originalidad se gasta en la señal (VRP + gamma), no en el debate.
 - **Solo el iron condor se opera en producción** (ver §2). Los verticales están en el código pero
@@ -499,15 +511,15 @@ documentado. En la ventana real (lun 31 – jue 3) esperamos **0–4 trades**, e
 
 | Criterio | Nuestra jugada |
 |---|---|
-| **P&L Performance** | No es nuestro eje. 4 sesiones = suerte. Pero no lo regalamos: sizing consistente, downside topado, y el backtest muestra que forzarlo empeora el resultado |
-| **Technology Implementation** | Uso profundo y real del stack de Alpaca: Trading API por el CLI, datos de opciones con griegas/IV, OI para el GEX, condors de 4 patas como una orden `mleg`, idempotencia + reconcile, 116 tests. La arquitectura coincide casi punto por punto con la que **Alpaca publica como buena práctica** |
+| **P&L Performance** | No es nuestro eje — 4 sesiones = suerte. Pero el resultado real es limpio: 1 trade, ganador, +$318,85, cerrado dentro de las strikes exactamente como estaba diseñado. Sizing consistente, downside topado, y el backtest muestra que forzarlo empeora el resultado |
+| **Technology Implementation** | Uso profundo y real del stack de Alpaca: Trading API por el CLI, datos de opciones con griegas/IV, OI para el GEX, condors de 4 patas como una orden `mleg`, idempotencia + reconcile, 181 tests. La arquitectura coincide casi punto por punto con la que **Alpaca publica como buena práctica** |
 | **Creativity & Originality** | La señal: superficie de volatilidad + gamma de dealers, no un indicador sobre el precio. La mesa de agentes anclada a números reales de la señal, con predicción falsable calificada |
 | **Presentation & Execution** | One-pager escrito desde el código (nada que no exista), vídeo con el momento en que la mesa **se niega a operar** antes de un dato macro, journal falsable, dashboard en vivo |
 
 **El reencuadre**: *"no vendemos una mesa que gana dinero, vendemos una mesa que sabe cuándo no
-operar"*. Solo funciona si el journal muestra a la mesa **decidiendo** no operar con motivo
-documentado (lo hace: ~300 decisiones de stand-down en 4 sesiones) **y** hay algunos trades reales
-(esperamos 2–4). Las dos cosas a la vez.
+operar"*. El journal lo demuestra: **295 decisiones de stand-down documentadas** en 4 sesiones,
+y **1 trade real** — abierto por la mesa real (no en sombra), cerrado dentro de las strikes,
++$318,85. Las dos cosas a la vez, con números reales, no proyectados.
 
 ---
 

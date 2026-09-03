@@ -62,6 +62,11 @@ The second row is honest about its own limits: with every gate disabled the same
 worse. This is not a strategy that wins a four-session P&L contest. It is a strategy whose
 discipline is auditable, which is what the other three judging axes ask for.
 
+**What actually happened in the scored window** (Mon 31 Aug – Thu 3 Sep, competition account
+`PA39HSCQE8S3`): **1 trade** — a QQQ iron condor, cleared by every gate and a live desk debate,
+closed inside every strike — and **295 documented stand-downs**. Ending equity **$100,318.85
+(+$318.85)**. Full numbers in [`docs/write-up.md`](docs/write-up.md).
+
 ## The one line that matters
 
 ```python
