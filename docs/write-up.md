@@ -1,8 +1,8 @@
 # IV Desk — One-Page Write-Up
 
 > Every sentence here can be checked by opening the file named in parentheses. Nothing is described
-> in the present tense unless it exists in the repo. The only blanks are the live-window numbers,
-> marked `[Results: fill Thu 3 Sep after the close]`.
+> in the present tense unless it exists in the repo. Results below are the real numbers from the
+> scored window (Mon 31 Aug – Thu 3 Sep), locked after the close of 3 Sep.
 
 **IV Desk is an autonomous options desk that sells the volatility risk premium — and documents every
 time it decides not to.**
