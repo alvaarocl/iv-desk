@@ -18,12 +18,16 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
+from . import blackscholes as bs
 from . import broker
 from . import marketdata as md
+
+ET = ZoneInfo("America/New_York")
 
 # The P&L window is measured on total equity at the close of Thu 3 Sep, and Alpaca confirmed in
 # Discord that Fri-4-Sep expirations are excluded from the measurement. A position expiring after
@@ -55,6 +59,8 @@ class Signal:
     stand_down: str         # "" when trading, else the gate that blocked: vrp | gex | trend | data
     notes: str
     chain: dict = field(default_factory=dict, repr=False)
+    iv_backfilled: int = 0  # contracts whose IV/greeks came from our own Black-Scholes, not
+                            # Alpaca — nonzero on 0DTE, where the feed doesn't publish either
 
 
 # ---------- realized-vol forecast ----------
@@ -319,19 +325,75 @@ def pick_expiration(
     return None
 
 
-def fetch(underlying: str, params) -> dict:
+# Verified live 3 Sep against the real chain: Alpaca's free/indicative feed does not publish
+# greeks or impliedVolatility for options expiring same-day — 0 of 192 SPY 0DTE contracts
+# carried either field, vs 153 of 216 for the next expiration. `pick_expiration`'s cutoff-day
+# fallback (signal.py:~300) makes 0DTE routine on the last scored day, not an edge case, so a
+# gap here stands the whole desk down on `stand_down: "data"` for the entire session. Backfilled
+# below by inverting Black-Scholes from the real mid-price, which Alpaca does still publish.
+MIN_T_YEARS = 2 / (365.25 * 24 * 60)  # <2 min to the close: don't even try
+RISK_FREE_R = 0.045  # a constant is fine — the effect on hours-to-expiry options is negligible
+
+
+def _mid_ps(snap: dict) -> float | None:
+    """Per-share mid from a two-sided quote, or None. Mirrors execution._mid_ps — never falls
+    back to 0.0 (issue #22: a zero silently inflates downstream sizing)."""
+    q = snap.get("latestQuote") or {}
+    bid, ask = q.get("bp"), q.get("ap")
+    if bid and ask and bid > 0 and ask > 0 and ask >= bid:
+        return (bid + ask) / 2
+    return None
+
+
+def _backfill_missing_greeks(
+    chain: dict, spot: float, expiration: str, now: datetime, r: float = RISK_FREE_R
+) -> int:
+    """Fill `impliedVolatility` and `greeks` for any contract Alpaca left without them, by
+    inverting Black-Scholes off the real quoted mid-price. Never touches a contract that
+    already has both fields — this only ever recovers data we would otherwise discard, it
+    can't override anything Alpaca actually measured. Applies on any day, not just 0DTE: it's
+    strictly additive, so it only ever does something where the contract would already have
+    been skipped entirely. Returns how many contracts were backfilled, for `Signal.notes`.
+    """
+    expiry_dt = datetime.combine(date.fromisoformat(expiration), time(16, 0), tzinfo=ET)
+    T = (expiry_dt - now).total_seconds() / (365.25 * 24 * 3600)
+    if T <= MIN_T_YEARS:
+        return 0
+    filled = 0
+    for sym, snap in chain.items():
+        if snap.get("greeks") and snap.get("impliedVolatility"):
+            continue
+        mid = _mid_ps(snap)
+        if mid is None:
+            continue
+        _, _, cp, k = md.parse_occ(sym)
+        iv = bs.implied_vol(mid, spot, k, T, r, cp == "C")
+        if iv is None:
+            continue
+        snap["impliedVolatility"] = iv
+        snap["greeks"] = {
+            "delta": bs.bs_delta(spot, k, T, r, iv, cp == "C"),
+            "gamma": bs.bs_gamma(spot, k, T, r, iv),
+        }
+        filled += 1
+    return filled
+
+
+def fetch(underlying: str, params, now: datetime) -> dict:
     spot = md.stock_price(underlying)
     exp = pick_expiration(underlying, spot)
     if exp is None:
         # Past the scoring cutoff: skip the chain and open-interest calls entirely. build_signal
         # turns this into an explicit `expiration` stand-down rather than a silent "data" one.
-        return {"spot": spot, "expiration": None, "chain": {}, "oi": {}, "bars": []}
+        return {"spot": spot, "expiration": None, "chain": {}, "oi": {}, "bars": [], "iv_backfilled": 0}
     lo, hi = spot * (1 - params.gex_band - 0.02), spot * (1 + params.gex_band + 0.02)
     chain = md.option_chain_snapshot(underlying, expiration_date=exp, strike_gte=lo, strike_lte=hi)
+    iv_backfilled = _backfill_missing_greeks(chain, spot, exp, now)
     cons = broker.option_contracts(underlying, expiration_date=exp, strike_gte=lo, strike_lte=hi)
     oi = {c["symbol"]: int(c["open_interest"]) for c in cons if c["open_interest"]}
     bars = md.daily_bars(underlying, 55)
-    return {"spot": spot, "expiration": exp, "chain": chain, "oi": oi, "bars": bars}
+    return {"spot": spot, "expiration": exp, "chain": chain, "oi": oi, "bars": bars,
+            "iv_backfilled": iv_backfilled}
 
 
 # ---------- main ----------
@@ -382,9 +444,12 @@ def build_signal(underlying: str, data: dict, params) -> Signal:
         head = f"IV {iv:.1%} vs RV_hat {rv:.1%} (ratio {ratio:.2f} vs {params.vrp_ratio_min:.2f})"
     else:
         head = "IV/RV unavailable"
+    iv_backfilled = int(data.get("iv_backfilled", 0))
     notes = (f"{head}; GEX_norm {gex_norm:+.3f} (|min| {params.gex_min:.2f}, state {state:+d}); "
              f"regime {regime}; skew {skew:+.1%}"
-             + (f"; STAND DOWN [{stand_down}]" if stand_down else f"; {structure}"))
+             + (f"; STAND DOWN [{stand_down}]" if stand_down else f"; {structure}")
+             + (f"; IV backfilled (Black-Scholes) for {iv_backfilled} 0DTE contracts"
+                if iv_backfilled else ""))
 
     return Signal(
         underlying=underlying, spot=spot, sell_premium=sell, structure=structure, bias=bias,
@@ -393,4 +458,5 @@ def build_signal(underlying: str, data: dict, params) -> Signal:
         atm_iv=round(iv, 4), rv_hat=round(rv, 4),
         gex=gex, gex_sign=(1 if gex >= 0 else -1), gex_norm=round(gex_norm, 4), gex_state=state,
         skew=round(skew, 4), stand_down=stand_down, notes=notes, chain=chain,
+        iv_backfilled=iv_backfilled,
     )

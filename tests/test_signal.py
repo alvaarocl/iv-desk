@@ -407,3 +407,125 @@ def test_missing_expiration_stands_the_signal_down_before_any_other_gate():
 ])
 def test_fallback_structure_matches_the_real_gate_ladder(regime, bias, expected):
     assert sg._fallback_structure(regime, bias) == expected
+
+
+# ---------- _backfill_missing_greeks — 0DTE IV/greeks Alpaca doesn't publish ----------
+#
+# Verified live 3 Sep: Alpaca's free feed carries zero greeks/IV for same-day-expiring
+# contracts (0 of 192 real SPY 0DTE contracts), which is exactly what `pick_expiration`'s
+# cutoff-day fallback produces on the last scored session. These pin the fix: real mid-price
+# in, real (Black-Scholes) IV/delta/gamma out, and never touching a contract Alpaca already
+# measured.
+
+from datetime import datetime as _dt
+from datetime import time as _time
+from zoneinfo import ZoneInfo as _ZoneInfo
+
+from agent import blackscholes as _bs
+
+_ET = _ZoneInfo("America/New_York")
+_0DTE_EXP = "2026-09-03"
+_0DTE_NOW = _dt(2026, 9, 3, 11, 0, tzinfo=_ET)  # ~5h to the 16:00 ET close — today's real gap
+
+
+def _0dte_chain(spot: float, strikes: list[float], sigma: float = 0.15,
+                *, with_greeks: set[float] | None = None) -> dict:
+    """A synthetic 0DTE chain: real (Black-Scholes-consistent) quotes, but NO greeks/IV —
+    exactly the shape Alpaca returns for same-day expiry. `with_greeks` strikes get Alpaca-style
+    complete data instead, to test that the backfill leaves real data alone."""
+    T = (_dt.combine(date.fromisoformat(_0DTE_EXP), _time(16, 0), tzinfo=_ET) - _0DTE_NOW
+        ).total_seconds() / (365.25 * 24 * 3600)
+    chain = {}
+    for k in strikes:
+        for cp, is_call in (("C", True), ("P", False)):
+            sym = occ("SPY", date.fromisoformat(_0DTE_EXP), cp, k)
+            price = _bs.bs_price(spot, k, T, 0.045, sigma, is_call)
+            q = {"bp": round(price * 0.97, 4), "ap": round(price * 1.03, 4)}
+            if with_greeks and k in with_greeks:
+                chain[sym] = {
+                    "latestQuote": q,
+                    "impliedVolatility": 0.9999,  # sentinel: must survive untouched
+                    "greeks": {"delta": 0.4242, "gamma": 0.4242},
+                }
+            else:
+                chain[sym] = {"latestQuote": q}  # no greeks, no IV — the real 0DTE shape
+    return chain
+
+
+def test_backfill_fills_a_chain_alpaca_left_empty():
+    spot = 771.0
+    chain = _0dte_chain(spot, [spot - 2, spot, spot + 2], sigma=0.15)
+    n = sg._backfill_missing_greeks(chain, spot, _0DTE_EXP, _0DTE_NOW)
+
+    assert n == len(chain)  # every contract was missing data -> every one got filled
+    for snap in chain.values():
+        assert 0.0 < snap["impliedVolatility"] < 5.0
+        assert -1.0 <= snap["greeks"]["delta"] <= 1.0
+        assert snap["greeks"]["gamma"] >= 0.0
+
+
+def test_backfill_recovers_the_sigma_it_was_priced_with():
+    spot = 771.0
+    chain = _0dte_chain(spot, [spot], sigma=0.18)  # ATM, single strike, both C and P
+    sg._backfill_missing_greeks(chain, spot, _0DTE_EXP, _0DTE_NOW)
+    for snap in chain.values():
+        assert snap["impliedVolatility"] == pytest.approx(0.18, abs=0.02)
+
+
+def test_backfill_never_touches_a_contract_alpaca_already_measured():
+    spot = 771.0
+    chain = _0dte_chain(spot, [spot - 2, spot, spot + 2], sigma=0.15,
+                        with_greeks={spot})
+    sg._backfill_missing_greeks(chain, spot, _0DTE_EXP, _0DTE_NOW)
+    for sym, snap in chain.items():
+        if "P00771000" in sym or "C00771000" in sym:
+            # the sentinel values from _0dte_chain must survive completely unchanged
+            assert snap["impliedVolatility"] == 0.9999
+            assert snap["greeks"] == {"delta": 0.4242, "gamma": 0.4242}
+
+
+def test_backfill_returns_zero_below_the_time_floor():
+    """Two minutes from the close (or less), it doesn't even try — IV is not meaningfully
+    defined that close to expiry, and the existing `data` stand-down is the safe fallback."""
+    spot = 771.0
+    chain = _0dte_chain(spot, [spot], sigma=0.15)
+    almost_closed = _dt.combine(date.fromisoformat(_0DTE_EXP), _time(15, 59), tzinfo=_ET)
+    n = sg._backfill_missing_greeks(chain, spot, _0DTE_EXP, almost_closed)
+    assert n == 0
+    for snap in chain.values():
+        assert "greeks" not in snap and "impliedVolatility" not in snap
+
+
+def test_build_signal_end_to_end_on_a_real_0dte_shaped_chain():
+    """The actual 3 Sep scenario: a chain with real quotes but zero native greeks/IV must not
+    stand down on `data` once fetch() has backfilled it."""
+    spot = 771.0
+    strikes = [spot + i for i in range(-6, 7)]
+    chain = _0dte_chain(spot, strikes, sigma=0.15)
+    iv_backfilled = sg._backfill_missing_greeks(chain, spot, _0DTE_EXP, _0DTE_NOW)
+    assert iv_backfilled > 0
+
+    oi = {sym: 1000 for sym in chain}
+    bars = range_bars()  # calm, realistic RV so vrp_ratio isn't degenerate
+    data = {"spot": spot, "expiration": _0DTE_EXP, "chain": chain, "oi": oi, "bars": bars,
+            "iv_backfilled": iv_backfilled}
+
+    s = sg.build_signal("SPY", data, params())
+    assert s.stand_down != "data", s.notes
+    assert np.isfinite(s.atm_iv) and s.atm_iv > 0
+    assert s.iv_backfilled == iv_backfilled
+    assert "Black-Scholes" in s.notes
+
+
+def test_build_signal_still_stands_down_on_data_past_the_time_floor():
+    spot = 771.0
+    chain = _0dte_chain(spot, [spot - 2, spot, spot + 2], sigma=0.15)
+    oi = {sym: 1000 for sym in chain}
+    almost_closed = _dt.combine(date.fromisoformat(_0DTE_EXP), _time(15, 59), tzinfo=_ET)
+    iv_backfilled = sg._backfill_missing_greeks(chain, spot, _0DTE_EXP, almost_closed)
+    data = {"spot": spot, "expiration": _0DTE_EXP, "chain": chain, "oi": oi, "bars": range_bars(),
+            "iv_backfilled": iv_backfilled}
+
+    s = sg.build_signal("SPY", data, params())
+    assert s.stand_down == "data"
+    assert s.iv_backfilled == 0
