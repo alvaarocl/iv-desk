@@ -13,7 +13,7 @@ Plataforma: lablab.ai. Reglas verificadas en [`REGLAS-HACKATHON.md`](../REGLAS-H
 | 2 | Licencia MIT presente | ✅ | `LICENSE` en la raíz |
 | 3 | **Disclosure de trabajo pre-evento** en el README | ✅ | Sección "Pre-event work disclosure". Sigue exacta |
 | 4 | **ID de la cuenta de competición** | ✅ dato | `PA39HSCQE8S3` ("PAPER UC3M"). Va en el formulario de submission |
-| 5 | **Vídeo demo** (~3:12) | 🔶 | Master mudo re-renderizado 3 sep con el resultado real: `video/out/iv-desk-presentation.mp4` (1920x1080, 60fps, 191.9s, sin audio). Guion S7 actualizado en `NARRATION.md`. **Falta**: generar el audio de S7 en ElevenLabs (mismos ajustes que el track existente: Arabella, PVC, sp100/s63/sb49, v3) y recomponer sobre `video/out/IVDESK-UC3M.mp4` — paso manual, no automatizado aquí |
+| 5 | **Vídeo demo** (~3:12) | ✅ | Final con audio: `video/out/IVDESK-UC3M.mp4` (1920x1080, 30fps, 191.9s, con narración + subtítulos, S7 con el resultado real). Master mudo: `video/out/iv-desk-presentation.mp4`. Verificado por fotograma 4 sep: cifras y verdict correctos |
 | 6 | **One-page write-up** | ✅ | `docs/write-up.md` reescrito 3 sep con los números reales (1 trade, +$318.85, 295 stand-downs) |
 | 7 | **Deck / slides** | ⬜ sin confirmar | **No aparece como requisito en `REGLAS-HACKATHON.md`** (verificado — cero menciones a "deck"/"slide"). No fabricar uno hasta confirmar en el formulario real de lablab.ai que lo pide |
 | 8 | **Descripción + tags + título** para lablab | ⬜ | Contenido preparado para copiar/pegar, ver abajo. Envío del formulario requiere confirmación explícita del usuario en el momento |
@@ -75,9 +75,9 @@ y el momento en que se niega a operar.
 1. [x] Confirmar el número de P&L final — $100.318,85 (+$318,85), verificado dos veces contra la
        cuenta real vía `gh workflow run desk.yml -f mode=exits_only`, 3 sep.
 2. [x] Write-up final con ese número — `docs/write-up.md`, 3 sep.
-3. [ ] Subir vídeo (YouTube/Vimeo no listado) — **pendiente del usuario**: generar audio S7 en
-       ElevenLabs + remux con el master mudo re-renderizado, luego subir. Deck sin confirmar si
-       lablab lo pide de verdad (ver ítem 7 arriba).
+3. [ ] Subir vídeo (YouTube/Vimeo no listado) — `video/out/IVDESK-UC3M.mp4` ya está terminado y en
+       el repo (4 sep), solo falta subirlo. Deck sin confirmar si lablab lo pide de verdad (ver ítem
+       7 arriba).
 4. [x] `gh repo edit --visibility public` — hecho el 1 sep, verificado de nuevo 3 sep.
 5. [ ] Rellenar el formulario de lablab: título, descripción, tags, cover, links (repo, vídeo,
        hasta 5 sociales), **account ID `PA39HSCQE8S3`**. Contenido preparado para copiar/pegar —
