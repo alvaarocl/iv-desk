@@ -9,16 +9,16 @@ Plataforma: lablab.ai. Reglas verificadas en [`REGLAS-HACKATHON.md`](../REGLAS-H
 
 | # | Entregable | Estado | Notas |
 |---|---|---|---|
-| 1 | **Repo público** | ⬜ | `gh repo edit alvaarocl/iv-desk --visibility public` — **el 4 sep, no antes** |
+| 1 | **Repo público** | ✅ | Ya público desde el 1 sep (antes de lo planeado). Verificado: `gh repo view` → `PUBLIC` |
 | 2 | Licencia MIT presente | ✅ | `LICENSE` en la raíz |
-| 3 | **Disclosure de trabajo pre-evento** en el README | ✅ | Sección "Pre-event work disclosure". Verificar que sigue siendo exacta el día 4 |
+| 3 | **Disclosure de trabajo pre-evento** en el README | ✅ | Sección "Pre-event work disclosure". Sigue exacta |
 | 4 | **ID de la cuenta de competición** | ✅ dato | `PA39HSCQE8S3` ("PAPER UC3M"). Va en el formulario de submission |
-| 5 | **Vídeo demo** (~3:12) | ✅ v1 lista | Vídeo final con narración: `video/out/IVDESK-UC3M.mp4` (visuales Remotion + voz ElevenLabs). Master mudo: `video/out/iv-desk-presentation.mp4`. **Jueves:** editar `video/src/data.ts` (`RESULTS.mode="live"`) + bloque S7 de `NARRATION.md`, `npm run render`, re-grabar solo el audio de S7, recomponer, subir a YouTube no listado |
-| 6 | **One-page write-up** | 🔶 | `docs/write-up.md` — reescribir desde el código el día 6 (issue #18). Números reales de la ventana |
-| 7 | **Deck / slides** | ⬜ | Miércoles 2. Cover image incluida |
-| 8 | **Descripción + tags + título** para lablab | ⬜ | Viernes 4 |
-| 9 | Hasta **5 links sociales** | ⬜ | Premio aparte ($500 ×2). Un post/día desde el lunes |
-| 10 | **Capturas post-cierre del jueves 3** | ⬜ | Equity, posiciones, activity log de `PA39HSCQE8S3` tras las 22:00 CEST. **Fijar el número de P&L** |
+| 5 | **Vídeo demo** (~3:12) | 🔶 | Master mudo re-renderizado 3 sep con el resultado real: `video/out/iv-desk-presentation.mp4` (1920x1080, 60fps, 191.9s, sin audio). Guion S7 actualizado en `NARRATION.md`. **Falta**: generar el audio de S7 en ElevenLabs (mismos ajustes que el track existente: Arabella, PVC, sp100/s63/sb49, v3) y recomponer sobre `video/out/IVDESK-UC3M.mp4` — paso manual, no automatizado aquí |
+| 6 | **One-page write-up** | ✅ | `docs/write-up.md` reescrito 3 sep con los números reales (1 trade, +$318.85, 295 stand-downs) |
+| 7 | **Deck / slides** | ⬜ sin confirmar | **No aparece como requisito en `REGLAS-HACKATHON.md`** (verificado — cero menciones a "deck"/"slide"). No fabricar uno hasta confirmar en el formulario real de lablab.ai que lo pide |
+| 8 | **Descripción + tags + título** para lablab | ⬜ | Contenido preparado para copiar/pegar, ver abajo. Envío del formulario requiere confirmación explícita del usuario en el momento |
+| 9 | Hasta **5 links sociales** | ⬜ | Premio aparte ($500 ×2), no bloquea la entrega principal |
+| 10 | **Capturas post-cierre del jueves 3** | ✅ equivalente | Equity y P&L confirmados dos veces vía `gh workflow run desk.yml -f mode=exits_only` contra la cuenta real: $100.318,85 (+$318,85). Capturas de pantalla serían redundantes con esto — opcional |
 
 Leyenda: ✅ hecho · 🔶 en curso · ⬜ pendiente
 
@@ -57,25 +57,30 @@ y el momento en que se niega a operar.
 
 ---
 
-## Antes de hacer el repo público (viernes 4)
+## Antes de hacer el repo público — ya hecho el 1 sep, verificado de nuevo 3 sep
 
-- [ ] `data/journal.jsonl` y `data/equity.csv` revisados — sin claves, sin nada sensible (son el
-      audit trail, es intencionado que sean públicos, pero mirar).
-- [ ] `.env` **no** está trackeado (`git ls-files | grep -c '\.env$'` → 0).
-- [ ] La disclosure pre-evento del README describe exactamente lo que hay.
-- [ ] El write-up no afirma nada que no esté en el código (issue #18).
-- [ ] `Refs/` (vídeos de referencia, ~450 MB) sigue en `.gitignore`.
-- [ ] Wiki: no hay wiki (descartada). Si se creara, su visibilidad sigue a la del repo.
+- [x] `data/journal.jsonl` y `data/equity.csv` revisados — sin claves, sin nada sensible (son el
+      audit trail, es intencionado que sean públicos). Re-verificado con grep 3 sep: 0 coincidencias.
+- [x] `.env` **no** está trackeado (`git ls-files | grep -c '\.env$'` → 0, verificado 3 sep).
+- [x] La disclosure pre-evento del README describe exactamente lo que hay.
+- [x] El write-up no afirma nada que no esté en el código (issue #18); reescrito 3 sep con números
+      reales, ninguno inventado.
+- [x] `Refs/` (vídeos de referencia, ~450 MB) sigue en `.gitignore`.
+- [x] Wiki: no hay wiki (descartada).
 
 ---
 
 ## Checklist del día de entrega (viernes 4)
 
-1. [ ] Confirmar el número de P&L final (de las capturas del jueves).
-2. [ ] Write-up final con ese número.
-3. [ ] Subir vídeo (YouTube/Vimeo no listado) y deck.
-4. [ ] `gh repo edit --visibility public`.
+1. [x] Confirmar el número de P&L final — $100.318,85 (+$318,85), verificado dos veces contra la
+       cuenta real vía `gh workflow run desk.yml -f mode=exits_only`, 3 sep.
+2. [x] Write-up final con ese número — `docs/write-up.md`, 3 sep.
+3. [ ] Subir vídeo (YouTube/Vimeo no listado) — **pendiente del usuario**: generar audio S7 en
+       ElevenLabs + remux con el master mudo re-renderizado, luego subir. Deck sin confirmar si
+       lablab lo pide de verdad (ver ítem 7 arriba).
+4. [x] `gh repo edit --visibility public` — hecho el 1 sep, verificado de nuevo 3 sep.
 5. [ ] Rellenar el formulario de lablab: título, descripción, tags, cover, links (repo, vídeo,
-       deck, hasta 5 sociales), **account ID `PA39HSCQE8S3`**.
+       hasta 5 sociales), **account ID `PA39HSCQE8S3`**. Contenido preparado para copiar/pegar —
+       envío requiere confirmación explícita del usuario en el momento, no se hace en su nombre.
 6. [ ] Enviar **antes de las 17:00 CEST**.
 7. [ ] Post social final: resultados + repo.
