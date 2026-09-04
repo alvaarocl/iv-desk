@@ -1,6 +1,45 @@
 # Portada — prompts para generar la imagen
 
-Para pegar en Gemini / Nano Banana / Midjourney. Tres direcciones distintas, elige una.
+Para pegar en Gemini / Nano Banana / Midjourney.
+
+---
+
+## Dirección D — "El payoff" *(la recomendada — probada, funciona)*
+
+Las direcciones A/B/C de abajo son composiciones de diagrama/escena: necesitan tamaño grande para
+leerse. La portada real va a verse casi siempre como una miniatura pequeña (tarjeta de submission
+de lablab, thumbnail social) — ahí un mark grande y simple gana siempre a una composición detallada.
+
+El gráfico es la forma real del payoff de un iron condor — la meseta plana de beneficio máximo y
+las dos alas de pérdida acotada — así que es honesto (es literalmente lo que opera el bot), no es
+un cliché de IA-trading, y se lee de un vistazo en miniatura. Probado con Nano Banana Pro (16:9,
+2K) — el resultado es un wordmark "IV DESK" grande a la izquierda + el trapecio del payoff en
+ámbar brillante a la derecha, sobre negro sólido. Funciona a la primera, sin retoque de texto.
+
+> Minimalist editorial poster cover, 16:9 widescreen. Solid deep charcoal-black background
+> (#13161b), no gradient, no texture. The single hero graphic fills the right two-thirds of the
+> frame: one bold continuous line drawing an options iron-condor payoff diagram — a flat-topped
+> trapezoid profile, like a wide plateau with two angled wings sloping down to the corners —
+> rendered thick and confident in warm amber-gold (#e0a83d), with a very subtle soft glow,
+> floating on the dark background with generous empty space around it, no axes, no grid, no
+> numbers, no chart clutter. On the left third, large confident geometric sans-serif wordmark "IV
+> DESK" in warm off-white (#e9e7e1), left-aligned, big and bold, filling maybe a third of the
+> frame height. Directly beneath it, one small line of muted grey subtitle text in a smaller
+> weight: "an options desk that knows when not to trade". Nothing else in the frame — no icons,
+> no charts, no photographs, no illustrated people, no bulls, no bears, no brains, no neural
+> network nodes, no circuit boards, no hexagon grids, no sci-fi HUD, no holographic UI, no
+> candlestick charts, no green arrows, no rockets, no coins or dollar signs, no lens flare, no
+> neon cyan/orange gradients, no fake statistics or percentage badges. Swiss editorial restraint,
+> like a modern Bloomberg Businessweek or The Economist cover — calm, precise, high contrast, a
+> lot of negative space, crisp clean typography rendered correctly and legibly.
+
+**Nota de ratio:** este prompt pide 16:9 (lo que pide el formulario de submission). Si necesitas
+también la versión Open Graph 1200×630 para redes, pide el mismo prompt con `aspect_ratio` 21:9 o
+recorta el 16:9 resultante — el mark está centrado a propósito para aguantar el recorte.
+
+---
+
+## Direcciones A/B/C (anteriores, más "escena" que "mark") — de respaldo si D no convence
 
 ---
 
