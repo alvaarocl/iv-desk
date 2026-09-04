@@ -15,7 +15,7 @@ Plataforma: lablab.ai. Reglas verificadas en [`REGLAS-HACKATHON.md`](../REGLAS-H
 | 4 | **ID de la cuenta de competición** | ✅ dato | `PA39HSCQE8S3` ("PAPER UC3M"). Va en el formulario de submission |
 | 5 | **Vídeo demo** (~3:12) | ✅ | Final con audio: `video/out/IVDESK-UC3M.mp4` (1920x1080, 30fps, 191.9s, con narración + subtítulos, S7 con el resultado real). Master mudo: `video/out/iv-desk-presentation.mp4`. Verificado por fotograma 4 sep: cifras y verdict correctos |
 | 6 | **One-page write-up** | ✅ | `docs/write-up.md` reescrito 3 sep con los números reales (1 trade, +$318.85, 295 stand-downs) |
-| 7 | **Deck / slides** | ⬜ sin confirmar | **No aparece como requisito en `REGLAS-HACKATHON.md`** (verificado — cero menciones a "deck"/"slide"). No fabricar uno hasta confirmar en el formulario real de lablab.ai que lo pide |
+| 7 | **Deck / slides** | ✅ listo | `assets/IV-Desk-Slides.pdf` (11 páginas, 16:9, diseñado en Pencil) — hecho por si el formulario de lablab lo pide. Sigue sin aparecer como requisito explícito en `REGLAS-HACKATHON.md`, pero ya no bloquea nada si lo piden |
 | 8 | **Descripción + tags + título** para lablab | ⬜ | Contenido preparado para copiar/pegar, ver abajo. Envío del formulario requiere confirmación explícita del usuario en el momento |
 | 9 | Hasta **5 links sociales** | ⬜ | Premio aparte ($500 ×2), no bloquea la entrega principal |
 | 10 | **Capturas post-cierre del jueves 3** | ✅ equivalente | Equity y P&L confirmados dos veces vía `gh workflow run desk.yml -f mode=exits_only` contra la cuenta real: $100.318,85 (+$318,85). Capturas de pantalla serían redundantes con esto — opcional |
