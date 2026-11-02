@@ -1607,3 +1607,5 @@
 {"ts": "2026-10-30T14:26:09.496462-04:00", "event": "signal", "underlying": "IWM", "spot": 277.395, "sell_premium": false, "structure": "none", "bias": "neutral", "regime": "chop", "expiration": "", "vrp": NaN, "vrp_ratio": NaN, "atm_iv": NaN, "rv_hat": NaN, "gex": 0.0, "gex_sign": 1, "gex_norm": 0.0, "gex_state": 0, "skew": 0.0, "stand_down": "expiration", "notes": "IV/RV unavailable; GEX_norm +0.000 (|min| 0.03, state +0); regime chop; skew +0.0%; STAND DOWN [expiration]", "iv_backfilled": 0, "logged_at": "2026-10-30T18:26:12.702258+00:00"}
 {"ts": "2026-10-30T18:34:56.614251-04:00", "event": "account", "account": "PA39HSCQE8S3", "mode": "live", "equity": "100320.07", "logged_at": "2026-10-30T22:34:56.659988+00:00"}
 {"ts": "2026-10-30T18:34:56.614251-04:00", "event": "market_closed", "logged_at": "2026-10-30T22:34:56.692763+00:00"}
+{"ts": "2026-11-02T17:10:11.339050-05:00", "event": "account", "account": "PA39HSCQE8S3", "mode": "live", "equity": "100320.07", "logged_at": "2026-11-02T22:10:11.897505+00:00"}
+{"ts": "2026-11-02T17:10:11.339050-05:00", "event": "market_closed", "logged_at": "2026-11-02T22:10:12.111338+00:00"}
